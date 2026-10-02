@@ -1,0 +1,9 @@
+[
+    {
+        "Protocol": "TCP",
+        "Port": 8085,
+        "Ref": "MainGamePort",
+        "Name": "World port",
+        "Description": "WorldServerPort. TCP. Base realmlist.sql also uses 8085."
+    }
+]

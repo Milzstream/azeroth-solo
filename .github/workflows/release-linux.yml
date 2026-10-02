@@ -1,0 +1,145 @@
+# Builds a native Linux x86_64 authserver + worldserver with mod-playerbots
+# and publishes solo-azeroth-linux-x86_64.tar.gz on a GitHub Release.
+# Manual only. A full AzerothCore compile is large; this workflow is not run
+# just by pushing the repository.
+name: release-linux
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Read pins
+        id: pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          # pins.env is KEY=VALUE
+          source pins.env
+          echo "ac_repo=$AZEROTHCORE_REPO" >> "$GITHUB_OUTPUT"
+          echo "ac_sha=$AZEROTHCORE_SHA" >> "$GITHUB_OUTPUT"
+          echo "pb_repo=$PLAYERBOTS_REPO" >> "$GITHUB_OUTPUT"
+          echo "pb_sha=$PLAYERBOTS_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout pinned AzerothCore Playerbot fork
+        uses: actions/checkout@v4
+        with:
+          repository: mod-playerbots/azerothcore-wotlk
+          ref: ${{ steps.pins.outputs.ac_sha }}
+          path: src/azerothcore-wotlk
+          fetch-depth: 1
+
+      - name: Checkout pinned mod-playerbots
+        uses: actions/checkout@v4
+        with:
+          repository: mod-playerbots/mod-playerbots
+          ref: ${{ steps.pins.outputs.pb_sha }}
+          path: src/azerothcore-wotlk/modules/mod-playerbots
+          fetch-depth: 1
+
+      - name: Install build packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git cmake make gcc g++ clang \
+            libmysqlclient-dev libssl-dev libbz2-dev \
+            libreadline-dev libncurses-dev mysql-server libboost-all-dev
+
+      - name: Configure and build
+        working-directory: src/azerothcore-wotlk
+        run: |
+          set -euo pipefail
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/ac-install" \
+            -DCONF_DIR=etc
+          cmake --build build --config Release --parallel
+          cmake --install build --config Release
+
+      - name: Stage release tree
+        run: |
+          set -euo pipefail
+          inst="$RUNNER_TEMP/ac-install"
+          stage="$RUNNER_TEMP/stage"
+          core="$GITHUB_WORKSPACE/src/azerothcore-wotlk"
+          rm -rf "$stage"
+          mkdir -p "$stage/bin" "$stage/etc/modules" "$stage/configs/modules" "$stage/sql/core/modules/mod-playerbots"
+
+          for b in authserver worldserver dbimport; do
+            if [ ! -f "$inst/bin/$b" ]; then
+              echo "missing installed binary: $inst/bin/$b" >&2
+              find "$inst" -type f -name "$b" -o -name "$b.exe" | head
+              exit 1
+            fi
+            cp -a "$inst/bin/$b" "$stage/bin/$b"
+          done
+
+          cp -a "$inst/etc/." "$stage/etc/"
+          shopt -s nullglob
+          for f in "$stage"/etc/*.conf.dist "$stage"/etc/modules/*.conf.dist; do
+            cp -f "$f" "${f%.dist}"
+          done
+
+          # AMP host is not the runner. Point SQL lookup at the tree we ship.
+          # Keys exist in authserver.conf.dist and worldserver.conf.dist.
+          for conf in "$stage"/etc/authserver.conf "$stage"/etc/worldserver.conf; do
+            sed -i \
+              -e 's|^SourceDirectory *=.*|SourceDirectory = "sql/core"|' \
+              -e 's|^MySQLExecutable *=.*|MySQLExecutable = "mysql"|' \
+              "$conf"
+          done
+          sed -i \
+            -e 's|^DataDir *=.*|DataDir = "data"|' \
+            -e 's|^MapUpdate.Threads *=.*|MapUpdate.Threads = 4|' \
+            "$stage/etc/worldserver.conf"
+          sed -i \
+            -e 's|^AiPlayerbot.MinRandomBots *=.*|AiPlayerbot.MinRandomBots = 50|' \
+            -e 's|^AiPlayerbot.MaxRandomBots *=.*|AiPlayerbot.MaxRandomBots = 150|' \
+            "$stage/etc/modules/playerbots.conf"
+
+          # Windows binaries look in configs/ (GetConfigPath). Ship the same files
+          # so the metaconfig has somewhere to write if a Windows asset is added later.
+          cp -a "$stage/etc/." "$stage/configs/"
+
+          mkdir -p "$stage/sql/core/data"
+          cp -a "$core/data/sql" "$stage/sql/core/data/sql"
+          mkdir -p "$stage/sql/core/data/sql/custom/db_auth"
+          cp -f "$GITHUB_WORKSPACE"/sql/db_auth/*.sql "$stage/sql/core/data/sql/custom/db_auth/"
+          cp -a "$core/modules/mod-playerbots/data" "$stage/sql/core/modules/mod-playerbots/data"
+
+          # Never pack client extracts even if a runner has some.
+          rm -rf "$stage/data" "$stage/sql/core/env" "$stage"/maps "$stage"/vmaps "$stage"/mmaps "$stage"/dbc "$stage"/Cameras
+
+          tar -C "$stage" -czf "$GITHUB_WORKSPACE/solo-azeroth-linux-x86_64.tar.gz" .
+          tar -tzf "$GITHUB_WORKSPACE/solo-azeroth-linux-x86_64.tar.gz" | head -40
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="build-${GITHUB_RUN_ID}"
+          gh release create "$tag" \
+            --title "Linux x86_64 ${GITHUB_SHA::7}" \
+            --notes "$(cat <<NOTES
+          Native Linux build of authserver, worldserver, and dbimport with mod-playerbots compiled in.
+          Built on ubuntu-22.04 from the pins in pins.env.
+          Asset: solo-azeroth-linux-x86_64.tar.gz
+
+          No Windows asset in this release. The AMP template also names solo-azeroth-windows-x86_64.zip, which is not produced here.
+          No WoW client data is included. Extract maps, vmaps, mmaps, dbc, and Cameras from your own 3.3.5a client.
+
+          Core: ${{ steps.pins.outputs.ac_sha }}
+          mod-playerbots: ${{ steps.pins.outputs.pb_sha }}
+          NOTES
+          )" \
+            solo-azeroth-linux-x86_64.tar.gz

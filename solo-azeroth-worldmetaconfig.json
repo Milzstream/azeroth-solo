@@ -1,0 +1,34 @@
+[
+    {
+        "ConfigFile": "etc/worldserver.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "configs/worldserver.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "etc/modules/playerbots.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "configs/modules/playerbots.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    }
+]

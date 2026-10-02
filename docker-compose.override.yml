@@ -1,0 +1,45 @@
+# Local test only. AMP does not use this file and does not run these containers.
+# The base file is the pinned fork's docker-compose.yml, checked out by scripts/bootstrap.sh.
+# Do not edit that upstream file. This override is the supported extension point.
+
+services:
+  ac-worldserver:
+    environment:
+      # Names follow IniKeyToEnvVarKey in the pinned core (Config.cpp): AC_ + uppercase, dot to _,
+      # underscore before an uppercase letter. These keys exist in playerbots.conf.dist / worldserver.conf.dist.
+      AC_AI_PLAYERBOT_ENABLED: "1"
+      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "50"
+      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "150"
+      AC_AI_PLAYERBOT_RANDOM_BOT_MAPS: "0,1,530,571"
+      AC_AI_PLAYERBOT_AUTO_DO_QUESTS: "1"
+      # worldserver.conf.dist default is 1. The playerbots install guide recommends 4-6.
+      AC_MAP_UPDATE_THREADS: "4"
+    volumes:
+      # worldserver applies playerbots SQL from the compiled source dir /azerothcore/modules.
+      # The runtime image does not contain the module tree; the mount supplies it.
+      - ./modules:/azerothcore/modules:ro
+
+  ac-client-data-init:
+    # The upstream image command downloads client data (inst_download_client_data).
+    # Replace it. This stack refuses to start until you have mounted your own extract.
+    entrypoint: ["bash", "-lc"]
+    command:
+      - |
+        data=/azerothcore/env/dist/data
+        missing=0
+        for d in dbc maps vmaps mmaps; do
+          if [ ! -d "$$data/$$d" ] || [ -z "$$(ls -A "$$data/$$d" 2>/dev/null || true)" ]; then
+            echo "Missing extracted client data: $$data/$$d"
+            missing=1
+          fi
+        done
+        if [ ! -d "$$data/Cameras" ] || [ -z "$$(ls -A "$$data/Cameras" 2>/dev/null || true)" ]; then
+          echo "Note: $$data/Cameras is empty. map_extractor also writes Cameras. Recommended, not checked as fatal."
+        fi
+        if [ "$$missing" -ne 0 ]; then
+          echo "This setup does not download maps, vmaps, mmaps, dbc, or MPQs."
+          echo "Extract them from your own 3.3.5a client and copy dbc, maps, vmaps, mmaps, and Cameras into the directory mounted at DOCKER_VOL_DATA."
+          exit 1
+        fi
+        echo "Using locally extracted client data."

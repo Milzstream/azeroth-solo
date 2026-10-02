@@ -1,0 +1,9 @@
+[
+    {
+        "Protocol": "TCP",
+        "Port": 3724,
+        "Ref": "MainGamePort",
+        "Name": "Auth port",
+        "Description": "RealmServerPort. TCP."
+    }
+]

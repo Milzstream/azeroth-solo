@@ -1,0 +1,14 @@
+# Local checkout of the pinned fork and module (scripts/bootstrap.sh)
+/src/
+
+# Extracted 3.3.5a client data. Never commit this.
+/data/
+
+# Docker env with the database password
+.env
+
+# Logs, build output, client extracts copied next to a checkout
+*.log
+/build/
+/env/
+/var/

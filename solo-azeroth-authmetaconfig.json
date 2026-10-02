@@ -1,0 +1,18 @@
+[
+    {
+        "ConfigFile": "etc/authserver.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "configs/authserver.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    }
+]

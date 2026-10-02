@@ -1,0 +1,82 @@
+[
+    {
+        "DisplayName": "Auth port",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Network:lan:1",
+        "Description": "RealmServerPort in authserver.conf.dist. Default 3724. TCP. The client realmlist points at this host; the world port is separate.",
+        "Keywords": "port",
+        "FieldName": "$MainGamePort",
+        "InputType": "number",
+        "ParamFieldName": "RealmServerPort",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": 3724,
+        "Hidden": true,
+        "ExcludeFromImport": true
+    },
+    {
+        "DisplayName": "Bind IP",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Network:lan:1",
+        "Description": "BindIP in authserver.conf.dist. Default \"0.0.0.0\".",
+        "Keywords": "ip,bind",
+        "FieldName": "BindIP",
+        "InputType": "text",
+        "ParamFieldName": "BindIP",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": "0.0.0.0"
+    },
+    {
+        "DisplayName": "Login database",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Database:storage:2",
+        "Description": "LoginDatabaseInfo in authserver.conf.dist. Same value as the worldserver login database. Dist default 127.0.0.1;3306;acore;acore;acore_auth. Change the password.",
+        "Keywords": "mysql,auth",
+        "FieldName": "LoginDatabaseInfo",
+        "InputType": "text",
+        "ParamFieldName": "LoginDatabaseInfo",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": "127.0.0.1;3306;acore;acore;acore_auth"
+    },
+    {
+        "DisplayName": "Source directory",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Startup:settings:5",
+        "Description": "SourceDirectory in authserver.conf.dist. The release sets sql/core so auth updates do not look for the GitHub runner path.",
+        "Keywords": "sql",
+        "FieldName": "SourceDirectory",
+        "InputType": "text",
+        "ParamFieldName": "SourceDirectory",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": "sql/core"
+    },
+    {
+        "DisplayName": "MySQL client",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Startup:settings:5",
+        "Description": "MySQLExecutable in authserver.conf.dist. Default mysql on PATH.",
+        "Keywords": "mysql",
+        "FieldName": "MySQLExecutable",
+        "InputType": "text",
+        "ParamFieldName": "MySQLExecutable",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": "mysql"
+    },
+    {
+        "DisplayName": "Database updates mask",
+        "Category": "Auth:vpn_key",
+        "Subcategory": "Startup:settings:5",
+        "Description": "Updates.EnableDatabases in authserver.conf.dist. Dist default 1 (auth database). 0 disables it.",
+        "Keywords": "updates",
+        "FieldName": "UpdatesEnableDatabases",
+        "InputType": "number",
+        "ParamFieldName": "Updates.EnableDatabases",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DefaultValue": 1
+    }
+]

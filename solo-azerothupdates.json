@@ -1,0 +1,52 @@
+[
+    {
+        "UpdateStageName": "Solo Azeroth Linux download",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSourceArch": "x86_64",
+        "UpdateSource": "GithubRelease",
+        "UpdateSourceData": "solo-azeroth-linux-x86_64.tar.gz",
+        "UpdateSourceArgs": "Milzstream/azeroth-solo",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "UnzipUpdateSource": true,
+        "OverwriteExistingFiles": true,
+        "DeleteAfterExtract": true,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Solo Azeroth Windows download",
+        "UpdateSourcePlatform": "Windows",
+        "UpdateSourceArch": "x86_64",
+        "UpdateSource": "GithubRelease",
+        "UpdateSourceData": "solo-azeroth-windows-x86_64.zip",
+        "UpdateSourceArgs": "Milzstream/azeroth-solo",
+        "UpdateSourceTarget": "{{$FullBaseDir}}",
+        "UnzipUpdateSource": true,
+        "OverwriteExistingFiles": true,
+        "DeleteAfterExtract": true,
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Set executable flag authserver",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSourceArch": "x86_64",
+        "UpdateSource": "SetExecutableFlag",
+        "UpdateSourceArgs": "{{$FullBaseDir}}bin/authserver",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Set executable flag worldserver",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSourceArch": "x86_64",
+        "UpdateSource": "SetExecutableFlag",
+        "UpdateSourceArgs": "{{$FullBaseDir}}bin/worldserver",
+        "SkipOnFailure": false
+    },
+    {
+        "UpdateStageName": "Set executable flag dbimport",
+        "UpdateSourcePlatform": "Linux",
+        "UpdateSourceArch": "x86_64",
+        "UpdateSource": "SetExecutableFlag",
+        "UpdateSourceArgs": "{{$FullBaseDir}}bin/dbimport",
+        "SkipOnFailure": true
+    }
+]
