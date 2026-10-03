@@ -130,6 +130,26 @@ The base compose file is `docker-compose.yml` in this repo. It starts `ac-databa
 
 Logs: `./scripts/dc.sh logs -f ac-worldserver`. Stop: `./scripts/dc.sh down`.
 
+## Windows (Docker Desktop)
+
+On Windows, use PowerShell and Docker Desktop. The `.sh` files are for a Unix shell. This section does not use `cmd.exe`.
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and leave it running. Compose v2 is included.
+2. Clone this repo and open PowerShell in the clone (the folder that contains `docker-compose.yml`).
+3. Run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows.ps1
+```
+
+`scripts/windows.ps1` is the Windows path for the same local test as `scripts/bootstrap.sh` plus `scripts/dc.sh build` and `scripts/dc.sh up -d`. It does not clone anything. It copies `sql/db_auth/*.sql` into `data/sql/custom/db_auth/`. If `.env` is missing it copies `.env.example` to `.env` and stops. Set `DOCKER_DB_ROOT_PASSWORD` in `.env` (replace `change-me`; an empty value makes the pinned compose file use `password`) and run the same command again.
+
+Put the extracted folders in `client-data/` before that command starts Compose: `client-data/dbc`, `client-data/maps`, `client-data/vmaps`, `client-data/mmaps`, and `Cameras`. That directory is `DOCKER_VOL_DATA` in `.env.example`. Do not put extracts under `data/`. The script stops if `dbc`, `maps`, `vmaps`, or `mmaps` are missing or empty. This repo does not download them.
+
+`map_extractor.exe` is not in the repo. `apps/extractor/extractor.bat` is only a menu. It starts `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, and `mmaps_generator.exe` from the client directory. It does not compile them. There is no Windows tools build in this repo that avoids Visual Studio, and `scripts/windows.ps1` does not produce those executables. Do not expect a one-click `.exe`. The Docker `ac-tools` image in [Get the extractor binaries](#get-the-extractor-binaries) builds Linux binaries named `map_extractor`, not `map_extractor.exe`. `extractor.bat` cannot run those.
+
+The pinned core does have a Visual Studio tools build, and it is the full compiler, not a shortcut. `conf/dist/config.cmake` lists `TOOLS_BUILD` values `all` and `maps-only`. `maps-only` is the whitelist for the CMake targets `map_extractor`, `vmap4_extractor`, `vmap4_assembler`, and `mmaps_generator` (`src/tools/CMakeLists.txt`). For MSVC, `src/cmake/compiler/msvc/settings.cmake` sets `CMAKE_RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`, so a Visual Studio build writes the executables under `<build directory>/bin/<Configuration>/`. The upstream pages that use that layout are [Windows core installation](https://www.azerothcore.org/wiki/windows-core-installation) (`TOOLS_BUILD` set to `all`, then Visual Studio `ALL_BUILD`, RelWithDebInfo, x64) and [Windows server setup](https://www.azerothcore.org/wiki/windows-server-setup), which copies `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, and `mmaps_generator.exe` from `C:\Build\bin\RelWithDebInfo\` when the build directory is `C:\Build`. `.github/workflows/windows_build.yml` is the same kind of full build (`CTOOLS_BUILD=all`, then `./acore.sh compiler build`) and is not run by this script.
+
 ### Docker accounts
 
 - MySQL user `root`. Password is `DOCKER_DB_ROOT_PASSWORD`. If that variable is empty, the pinned compose file uses `password`. Change it in `.env` before the first start. Port `DOCKER_DB_EXTERNAL_PORT` (3306).
