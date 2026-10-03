@@ -161,15 +161,13 @@ gh run download RUN_ID --repo Milzstream/azeroth-solo --name windows-extractor-t
 
 Skip this if the artifact download worked. It needs Visual Studio, Boost (`BOOST_ROOT`), a MySQL client library CMake can find, and OpenSSL (`OPENSSL_ROOT_DIR`). There is no separate cmake command line in the upstream Windows pages, so this repo does not invent one.
 
-`apps/ci/ci-conf-tools.sh` is the tools configuration: `CAPPS_BUILD=none`, `CTOOLS_BUILD=maps-only`, `CSCRIPTPCH=OFF`, `CCOREPCH=OFF`. `conf/dist/config.sh` reads `CAPPS_BUILD` and `CTOOLS_BUILD` from the environment (`${CAPPS_BUILD:-all}`, `${CTOOLS_BUILD:-none}`). `maps-only` is the whitelist in `conf/dist/config.cmake` and `src/tools/CMakeLists.txt` for `map_extractor`, `vmap4_extractor`, `vmap4_assembler`, and `mmaps_generator`. `APPS_BUILD=none` does not build `authserver` or `worldserver`. `./acore.sh compiler build` is the entry point `.github/workflows/windows_build.yml` already uses (that workflow passes `CTOOLS_BUILD=all` and builds the whole server; this one does not).
+`apps/ci/ci-conf-tools.sh` sets `CAPPS_BUILD=none` and `CTOOLS_BUILD=maps-only`. `conf/dist/config.sh` reads those from the environment (`${CAPPS_BUILD:-all}`, `${CTOOLS_BUILD:-none}`). `maps-only` is the whitelist in `conf/dist/config.cmake` and `src/tools/CMakeLists.txt` for `map_extractor`, `vmap4_extractor`, `vmap4_assembler`, and `mmaps_generator`. `APPS_BUILD=none` does not build `authserver` or `worldserver`. `./acore.sh compiler build` is the entry point `.github/workflows/windows_build.yml` already uses (that workflow passes `CTOOLS_BUILD=all` and builds the whole server; this one does not). The Linux tools file also sets `CCOREPCH=OFF`. Do not do that on Windows. An MSVC build of `common` with core PCH off fails (`ASSERT`, `M_PI`, `std::string` come from the precompiled header). Leave `CCOREPCH` and `CSCRIPTPCH` at the compiler default, which is on.
 
 From Git Bash, in this clone:
 
 ```bash
 export CAPPS_BUILD=none
 export CTOOLS_BUILD=maps-only
-export CSCRIPTPCH=OFF
-export CCOREPCH=OFF
 ./acore.sh compiler build
 ```
 

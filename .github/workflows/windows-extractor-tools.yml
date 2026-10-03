@@ -1,7 +1,9 @@
 # Builds only the map extractor tools on windows-latest.
-# Settings are the tools CI file apps/ci/ci-conf-tools.sh:
-#   CAPPS_BUILD=none  CTOOLS_BUILD=maps-only  CSCRIPTPCH=OFF  CCOREPCH=OFF
-# conf/dist/config.sh reads CAPPS_BUILD and CTOOLS_BUILD from the environment.
+# CAPPS_BUILD=none and CTOOLS_BUILD=maps-only are the tools settings in
+# apps/ci/ci-conf-tools.sh. conf/dist/config.sh reads both from the environment.
+# That Linux file also sets CCOREPCH=OFF. MSVC common does not compile that way
+# (missing precompiled header: ASSERT, M_PI, std::string), so this job leaves
+# CCOREPCH and CSCRIPTPCH at the compiler default, ON.
 # maps-only is the whitelist in conf/dist/config.cmake for
 # map_extractor, vmap4_extractor, vmap4_assembler, mmaps_generator.
 # APPS_BUILD=none does not build authserver or worldserver.
@@ -149,8 +151,6 @@ jobs:
         run: |
           export CAPPS_BUILD=none
           export CTOOLS_BUILD=maps-only
-          export CSCRIPTPCH=OFF
-          export CCOREPCH=OFF
           ./acore.sh compiler build
           if [ -f var/build/obj/bin/Release/worldserver.exe ] || [ -f var/build/obj/bin/Release/authserver.exe ]; then
             echo "APPS_BUILD=none did not stick; server binaries were built" >&2

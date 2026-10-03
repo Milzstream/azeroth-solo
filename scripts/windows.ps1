@@ -1,7 +1,7 @@
 # Local Docker test on Windows, after the extractor tools are on disk.
 # Default path downloads the windows-extractor-tools Actions artifact.
-# -LocalBuild runs ./acore.sh compiler build with the tools settings from
-# apps/ci/ci-conf-tools.sh (CAPPS_BUILD=none, CTOOLS_BUILD=maps-only).
+# -LocalBuild runs ./acore.sh compiler build with CAPPS_BUILD=none and
+# CTOOLS_BUILD=maps-only (apps/ci/ci-conf-tools.sh). PCH stays at the default.
 # Does not clone upstream or download client data.
 #Requires -Version 5.1
 param(
@@ -95,8 +95,6 @@ function Write-LocalBuildCommand {
     Write-Host "Local build, from Git Bash in this clone. These are the apps/ci/ci-conf-tools.sh settings. ./acore.sh compiler build is the same entry point as .github/workflows/windows_build.yml. conf/dist/config.sh reads CAPPS_BUILD and CTOOLS_BUILD from the environment."
     Write-Host "  export CAPPS_BUILD=none"
     Write-Host "  export CTOOLS_BUILD=maps-only"
-    Write-Host "  export CSCRIPTPCH=OFF"
-    Write-Host "  export CCOREPCH=OFF"
     Write-Host "  ./acore.sh compiler build"
     Write-Host "That needs Visual Studio, Boost (BOOST_ROOT), a MySQL client library CMake can find, and OpenSSL (OPENSSL_ROOT_DIR). It builds the four extractor targets only (APPS_BUILD=none). On Git Bash, OSTYPE is cygwin, so cmake --install is skipped and the exes stay in var\build\obj\bin\Release\."
     Write-Host "The Windows core installation wiki does not give a cmake command line. It sets TOOLS_BUILD to all and builds ALL_BUILD (the whole server), RelWithDebInfo, x64."
@@ -147,7 +145,7 @@ if ($LocalBuild) {
     }
     $bashRoot = (ConvertTo-GitBashPath $root) -replace "'", "'\''"
     Write-Host "Building extractor tools with ./acore.sh compiler build (CAPPS_BUILD=none CTOOLS_BUILD=maps-only)."
-    & $bash -c "cd '$bashRoot' && export CAPPS_BUILD=none && export CTOOLS_BUILD=maps-only && export CSCRIPTPCH=OFF && export CCOREPCH=OFF && ./acore.sh compiler build"
+    & $bash -c "cd '$bashRoot' && export CAPPS_BUILD=none && export CTOOLS_BUILD=maps-only && ./acore.sh compiler build"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     $toolDir = Find-ExtractorDir @(
         (Join-Path $root "var\build\obj\bin\Release"),
