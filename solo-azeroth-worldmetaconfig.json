@@ -30,5 +30,37 @@
         "ConfigType": "kvp",
         "ConfigFormat": "{0} = {1}",
         "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "etc/modules/individualProgression.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "configs/modules/individualProgression.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "etc/modules/mod_ollama_chat.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
+    },
+    {
+        "ConfigFile": "configs/modules/mod_ollama_chat.conf",
+        "AutoMap": true,
+        "Importable": true,
+        "ConfigType": "kvp",
+        "ConfigFormat": "{0} = {1}",
+        "ConfigFormatRegex": "^(?<key>.+?) = (?<value>.*?)$"
     }
 ]

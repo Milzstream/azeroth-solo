@@ -6,7 +6,7 @@ services:
   ac-worldserver:
     environment:
       # Names follow IniKeyToEnvVarKey in the pinned core (Config.cpp): AC_ + uppercase, dot to _,
-      # underscore before an uppercase letter. These keys exist in playerbots.conf.dist / worldserver.conf.dist.
+      # underscore before an uppercase letter. These keys exist in the pinned or vendored conf.dist files.
       AC_AI_PLAYERBOT_ENABLED: "1"
       AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
       AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "50"
@@ -15,6 +15,18 @@ services:
       AC_AI_PLAYERBOT_AUTO_DO_QUESTS: "1"
       # worldserver.conf.dist default is 1. The playerbots install guide recommends 4-6.
       AC_MAP_UPDATE_THREADS: "4"
+      # playerbots.conf.dist key AiPlayerbot.ApplyInstanceStrategies. Dist default 1.
+      # Set to 0 (mod-playerbots issue 530 Naxxramas crash workaround).
+      AC_AI_PLAYERBOT_APPLY_INSTANCE_STRATEGIES: "0"
+      # individualProgression.conf.dist. Enable the module. StartingProgression 0 is
+      # stage PROGRESSION_START (Classic, level cap 60, Molten Core and Onyxia), not Wrath.
+      AC_INDIVIDUAL_PROGRESSION_ENABLE: "1"
+      AC_INDIVIDUAL_PROGRESSION_STARTING_PROGRESSION: "0"
+      # mod_ollama_chat.conf.dist. On, but OllamaChat.Url is not overridden.
+      # Dist default http://localhost:11434/api/generate is the container, not the host.
+      # Chat does nothing useful until AC_OLLAMA_CHAT_URL points at a running Ollama
+      # /api/generate endpoint. A missing Ollama does not stop worldserver from booting.
+      AC_OLLAMA_CHAT_ENABLE: "1"
     volumes:
       # worldserver applies playerbots SQL from the compiled source dir /azerothcore/modules.
       # The runtime image does not contain the module tree; the mount supplies it.

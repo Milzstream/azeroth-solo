@@ -2,7 +2,7 @@
 
 Wrath of the Lich King **3.3.5a** (client build **12340**). Not Classic. Not Retail.
 
-This repo is the source of truth. It contains the AzerothCore Playerbot server and the `mod-playerbots` module. Clone it and edit it here. It does not contain Blizzard client files. Two ways to run it:
+This repo is the source of truth. It contains the AzerothCore Playerbot server, `mod-playerbots`, and two more modules under `modules/` (see [Modules in the tree](#modules-in-the-tree)). Clone it and edit it here. It does not contain Blizzard client files. Two ways to run it:
 
 - **Docker Compose** on your own machine, for you and a friend to test. AMP does not use this.
 - **CubeCoders AMP**, as a normal process in the Create Instance list (same idea as ARK or 7 Days to Die). AMP downloads a Linux build from a GitHub Release and starts `authserver` and `worldserver` itself. There is no AMP Docker image and `DockerRequired` is false.
@@ -17,10 +17,24 @@ The files on `main` are what you build and edit. The URLs below are attribution 
 | --- | --- | --- | --- |
 | Core (branch `Playerbot`) | https://github.com/mod-playerbots/azerothcore-wotlk | `f19a18799a35f7c24bdcdc9ea399c601f166259b` | repository root (`src/`, `CMakeLists.txt`, `docker-compose.yml`) |
 | Module (branch `master`) | https://github.com/mod-playerbots/mod-playerbots | `037c01418b5d01506917a3db9b44fd56ac5f965c` | `modules/mod-playerbots` |
+| Individual progression | https://github.com/ZhengPeiRu21/mod-individual-progression | `723c510c685cca184d8b96b6c22452bd48fda23a` | `modules/mod-individual-progression` |
+| Ollama chat | https://github.com/DustinHendrickson/mod-ollama-chat | `a9966f3e6b20efb98aab8b56ff9d997d8e1bcc06` | `modules/mod-ollama-chat` |
 
 Those SHAs are recorded in `pins.env`. Docker, `scripts/bootstrap.sh`, and `.github/workflows/release-linux.yml` do not clone them. A newer upstream revision means importing that tree into this repo, not pointing the build at someone else's remote.
 
-The imported core and module stay **GPL-2.0**. This repo does not relicense them. See `LICENSE` and `modules/mod-playerbots/LICENSE`.
+The imported core and `mod-playerbots` stay **GPL-2.0**. `mod-individual-progression` keeps the **MIT** `LICENSE` in its directory. `mod-ollama-chat` keeps the **AGPL-3.0** `LICENSE` in its directory. This repo does not relicense any of them. See `LICENSE` and each module's `LICENSE`.
+
+## Modules in the tree
+
+`modules/mod-individual-progression` and `modules/mod-ollama-chat` are real source trees, same idea as `modules/mod-playerbots`: committed here, not submodules, and not cloned by Docker, bootstrap, or CI. The directory names match the loader symbols in the imported core (`Addmod_individual_progressionScripts` and `Addmod_ollama_chatScripts`).
+
+**Individual progression** is per character: Vanilla, then The Burning Crusade, then Wrath. Docker and the AMP world template set `IndividualProgression.Enable = 1` and `IndividualProgression.StartingProgression = 0`. Stage 0 is `PROGRESSION_START` in that module: Classic, level cap 60, Molten Core and Onyxia, not Wrath. Characters can still advance later. `IndividualProgression.ProgressionLimit` is left at its dist default of 0, which that conf file says means no limit. `IndividualProgression.SimpleConfigOverride` is left at its dist default of 1. That conf comment says this sets the two core options the module needs (`EnablePlayerSettings` and not enforcing DBC item attributes). This repo does not set those worldserver keys itself.
+
+**Ollama chat** lets playerbots talk in character through an Ollama HTTP API. `OllamaChat.Enable = 1`. The URL key in `conf/mod_ollama_chat.conf.dist` is `OllamaChat.Url`, default `http://localhost:11434/api/generate`. Nothing useful happens until that URL is a running Ollama `/api/generate` endpoint. The module probes Ollama off the world thread, so worldserver does not need Ollama in order to boot. Docker does not override the URL. Inside the world container, localhost is the container, not your machine. Set `AC_OLLAMA_CHAT_URL` on `ac-worldserver` when you have an endpoint. The module README still says to use the liyunfan1223 core and playerbots forks. The tree is imported anyway. Compatibility with this repo's playerbots revision is not compile-tested.
+
+**Not added:** dungeon-clear was left out on purpose. Real dungeon groups are future custom work, not another imported module.
+
+**Playerbots and Naxxramas:** `AiPlayerbot.ApplyInstanceStrategies = 0`. That key exists in `modules/mod-playerbots/conf/playerbots.conf.dist` (dist default 1). It is the workaround named on [mod-playerbots issue 530](https://github.com/mod-playerbots/mod-playerbots/issues/530).
 
 ## What you must supply
 
@@ -112,7 +126,7 @@ docker compose \
   "$@"
 ```
 
-The base compose file is `docker-compose.yml` in this repo. It starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. The world image is built from this tree with `modules/mod-playerbots` in the build context, which is how `apps/docker/Dockerfile` compiles modules (`COPY modules`). The override also bind-mounts `./modules` onto `/azerothcore/modules` because playerbots applies its SQL from that source path, and the worldserver runtime stage does not copy the module tree.
+The base compose file is `docker-compose.yml` in this repo. It starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. The world image is built from this tree with `modules/mod-playerbots`, `modules/mod-individual-progression`, and `modules/mod-ollama-chat` in the build context, which is how `apps/docker/Dockerfile` compiles modules (`COPY modules`). The override also bind-mounts `./modules` onto `/azerothcore/modules` because playerbots applies its SQL from that source path, and the worldserver runtime stage does not copy the module tree.
 
 Logs: `./scripts/dc.sh logs -f ac-worldserver`. Stop: `./scripts/dc.sh down`.
 
@@ -151,6 +165,12 @@ The override sets environment variables the pinned core maps onto conf keys:
 | `AC_AI_PLAYERBOT_RANDOM_BOT_MAPS` | `AiPlayerbot.RandomBotMaps` | `0,1,530,571` | same |
 | `AC_AI_PLAYERBOT_AUTO_DO_QUESTS` | `AiPlayerbot.AutoDoQuests` | 1 | 1 |
 | `AC_MAP_UPDATE_THREADS` | `MapUpdate.Threads` | 4 | 1 |
+| `AC_AI_PLAYERBOT_APPLY_INSTANCE_STRATEGIES` | `AiPlayerbot.ApplyInstanceStrategies` | 0 | 1 |
+| `AC_INDIVIDUAL_PROGRESSION_ENABLE` | `IndividualProgression.Enable` | 1 | 1 |
+| `AC_INDIVIDUAL_PROGRESSION_STARTING_PROGRESSION` | `IndividualProgression.StartingProgression` | 0 | 0 |
+| `AC_OLLAMA_CHAT_ENABLE` | `OllamaChat.Enable` | 1 | 1 |
+
+`OllamaChat.Url` is not set here. The dist value stays `http://localhost:11434/api/generate`. Add `AC_OLLAMA_CHAT_URL` on `ac-worldserver` only when you have a real endpoint. See [Modules in the tree](#modules-in-the-tree).
 
 `RandomBotAutologin` is what logs random bots into the world, not only bots in your party. 50 / 150 is a lighter start than the module's 500 / 500. Maps `0,1,530,571` are Eastern Kingdoms, Kalimdor, Outland, and Northrend. XP, honor, and drop rates are not overridden, so they stay at the dist value **1**.
 
@@ -173,14 +193,14 @@ Both download the same release asset via `solo-azerothupdates.json` (`GithubRele
 4. Update each instance so AMP unpacks the release into `serverfiles/`.
 5. On the world instance only, copy your extracted `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` into `serverfiles/data/` with the File Manager or a disk copy. The template will not do this.
 6. Install the MySQL client on the AMP host (`mysql` on `PATH`, or set **MySQL client** in the panel). The conf key `MySQLExecutable` is empty in the dist files and would otherwise keep the build machine's path.
-7. The release sets `SourceDirectory` to `sql/core`. That tree is the core `data/sql` plus `modules/mod-playerbots/data`, so the built-in updater can load SQL without the GitHub runner path. `Updates.EnableDatabases` stays at the dist values (world **7**, auth **1**). `Updates.AutoSetup` stays **1**.
+7. The release sets `SourceDirectory` to `sql/core`. That tree is the core `data/sql` plus `modules/mod-playerbots/data`, `modules/mod-individual-progression/data`, and `modules/mod-ollama-chat/data`, so the built-in updater can load SQL without the GitHub runner path. `Updates.EnableDatabases` stays at the dist values (world **7**, auth **1**). `Updates.AutoSetup` stays **1**.
 8. The upstream `data/sql/create/create_mysql.sql` (shipped at `sql/core/data/sql/create/create_mysql.sql`) creates MySQL user `acore` with password `acore`, and databases `acore_auth`, `acore_world`, and `acore_characters`. **Change that password** before you rely on it. It does not create `acore_playerbots`; the playerbots updater creates that database when `Playerbots.Updates.EnableDatabases` is 1.
 9. Start **auth**, then **world**. The world console command to stop is `server exit` (pinned `cs_server.cpp`, `Console::Yes`). Auth is stopped by the process signal (`ExitMethod=OS_CLOSE`). Auth's ready line in the template is `Started auth database connection pool.` from `authserver/Main.cpp`. That line is before the network loop; there is no separate "listening" line in that file. World's ready line is `(worldserver-daemon) ready...`.
 10. Create a game account on the world console the same way as Docker (`account create`, then `account set gmlevel`).
 
 The panel edits conf keys through `solo-azeroth-worldconfig.json` and `solo-azeroth-authconfig.json`. Files written:
 
-- Linux: `etc/worldserver.conf`, `etc/modules/playerbots.conf`, `etc/authserver.conf` (`-c` points at the main file; module conf is loaded from `etc/modules/` because the Linux build uses `-DCONF_DIR=etc`)
+- Linux: `etc/worldserver.conf`, `etc/modules/playerbots.conf`, `etc/modules/individualProgression.conf`, `etc/modules/mod_ollama_chat.conf`, `etc/authserver.conf` (`-c` points at the main file; module conf is loaded from `etc/modules/` because the Linux build uses `-DCONF_DIR=etc`)
 - Windows layout, same bytes: `configs/...` because `GetConfigPath()` on Windows is hard-coded to `configs/`
 
 A Windows player would need `solo-azeroth-windows-x86_64.zip` with `bin/authserver.exe` and `bin/worldserver.exe`. The template lists that asset so the Create Instance list can show Windows as well as Linux (`Meta.OS=Windows, Linux`). **The workflow does not build it.** The fork's Windows CI (`windows_build.yml`) is a separate Boost and MySQL installer ending in `./acore.sh compiler build`, and it was not reproduced here. Until that zip exists, create the instances on Linux. A Windows update will fail looking for the zip.
@@ -192,8 +212,10 @@ All of these are keys in the pinned `worldserver.conf.dist` or `playerbots.conf.
 - `WorldServerPort` (default 8085, TCP), `BindIP`, `DataDir` (default `data`), `RealmID` (default 1), `PlayerLimit` (default 1000)
 - `LoginDatabaseInfo`, `WorldDatabaseInfo`, `CharacterDatabaseInfo`, `PlayerbotsDatabaseInfo` (dist strings use user `acore` / password `acore`; change them)
 - `SourceDirectory` (default `sql/core`), `MySQLExecutable` (default `mysql`), `Updates.EnableDatabases` (default 7), `MapUpdate.Threads` (default 4 here; dist file says 1)
-- `AiPlayerbot.Enabled` (1), `AiPlayerbot.RandomBotAutologin` (1), `AiPlayerbot.MinRandomBots` (50), `AiPlayerbot.MaxRandomBots` (150), `AiPlayerbot.RandomBotMaps` (`0,1,530,571`), `AiPlayerbot.AutoDoQuests` (1), `Playerbots.Updates.EnableDatabases` (1)
+- `AiPlayerbot.Enabled` (1), `AiPlayerbot.RandomBotAutologin` (1), `AiPlayerbot.MinRandomBots` (50), `AiPlayerbot.MaxRandomBots` (150), `AiPlayerbot.RandomBotMaps` (`0,1,530,571`), `AiPlayerbot.AutoDoQuests` (1), `AiPlayerbot.ApplyInstanceStrategies` (0), `Playerbots.Updates.EnableDatabases` (1)
 - `Rate.XP.Kill`, `Rate.XP.Quest`, `Rate.XP.Explore`, `Rate.Honor`, `Rate.Drop.Money` (all default 1)
+- `IndividualProgression.Enable` (1) and `IndividualProgression.StartingProgression` (0), written to `etc/modules/individualProgression.conf` (and `configs/modules/` on the Windows layout)
+- `OllamaChat.Enable` (1) and `OllamaChat.Url` (`http://localhost:11434/api/generate`), written to `etc/modules/mod_ollama_chat.conf`. Change the URL to a running Ollama `/api/generate` endpoint or chat does nothing useful. This template does not start Ollama.
 
 Auth panel: `RealmServerPort` (3724, TCP), `BindIP`, `LoginDatabaseInfo`, `SourceDirectory`, `MySQLExecutable`, `Updates.EnableDatabases` (1).
 
@@ -210,9 +232,9 @@ Item drop rates other than `Rate.Drop.Money` exist (`Rate.Drop.Item.Poor` and th
 `solo-azeroth-linux-x86_64.tar.gz` (only after the workflow runs), laid out for AMP's `serverfiles/` directory:
 
 - `bin/authserver`, `bin/worldserver`, `bin/dbimport`
-- `etc/*.conf` and `etc/modules/playerbots.conf`, plus a `configs/` copy
+- `etc/*.conf` and `etc/modules/playerbots.conf`, `etc/modules/individualProgression.conf`, and `etc/modules/mod_ollama_chat.conf`, plus a `configs/` copy
 - `sql/core/data/sql` from the core, including the realm-name file under `custom/db_auth`
-- `sql/core/modules/mod-playerbots/data` from the module
+- `sql/core/modules/mod-playerbots/data`, `sql/core/modules/mod-individual-progression/data`, and `sql/core/modules/mod-ollama-chat/data`
 
 Built on `ubuntu-22.04` with the same compiler packages as the fork's `core-build-playerbots.yml`, plus `-DCMAKE_INSTALL_PREFIX` and `-DCONF_DIR=etc`. The host that runs the binaries needs the MySQL client library, OpenSSL, and readline that this build links. The pinned Docker runtime image installs `libmysqlclient21` and `libreadline8` for that.
 
@@ -239,6 +261,8 @@ Do not commit `.env`, `client-data/`, logs, build output, or client extracts. Th
 ## What this repo does not do
 
 - It does not host or start a public realm.
-- It does not clone AzerothCore or mod-playerbots when you build. Those trees are already here.
+- It does not clone AzerothCore, mod-playerbots, mod-individual-progression, or mod-ollama-chat when you build. Those trees are already here.
+- It does not add dungeon-clear. Real dungeon groups are future custom work.
 - It does not download or store client data.
 - It does not ship an AMP container, and the templates do not name a Docker image.
+- It does not run Ollama. `OllamaChat.Url` has to point at one before bot chat does anything useful.

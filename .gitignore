@@ -144,6 +144,8 @@ compile_commands.json
 # Core ignores every module directory and *.override.yml / .env* ; re-include ours.
 # ==================
 !/modules/mod-playerbots/
+!/modules/mod-individual-progression/
+!/modules/mod-ollama-chat/
 !/docker-compose.override.yml
 !.env.example
 

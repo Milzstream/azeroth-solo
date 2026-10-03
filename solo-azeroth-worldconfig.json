@@ -325,5 +325,70 @@
         "IncludeInCommandLine": false,
         "EnumValues": {},
         "DefaultValue": 1
+    },
+    {
+        "Keywords": "naxxramas,instances,bots",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DisplayName": "Apply instance strategies",
+        "Category": "World:public",
+        "Subcategory": "Playerbots:groups:3",
+        "Description": "AiPlayerbot.ApplyInstanceStrategies in playerbots.conf.dist. Dist default 1. Set to 0 here. That is the workaround named on mod-playerbots issue 530 (Naxxramas crash).",
+        "FieldName": "ApplyInstanceStrategies",
+        "InputType": "number",
+        "ParamFieldName": "AiPlayerbot.ApplyInstanceStrategies",
+        "DefaultValue": 0
+    },
+    {
+        "Keywords": "progression,vanilla",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DisplayName": "Individual progression",
+        "Category": "World:public",
+        "Subcategory": "Progression:groups:6",
+        "Description": "IndividualProgression.Enable in individualProgression.conf.dist. 1 on, 0 off. Dist default 1. Per-character Vanilla, then TBC, then Wrath.",
+        "FieldName": "IndividualProgressionEnable",
+        "InputType": "number",
+        "ParamFieldName": "IndividualProgression.Enable",
+        "DefaultValue": 1
+    },
+    {
+        "Keywords": "classic,tier,molten core",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DisplayName": "Starting progression",
+        "Category": "World:public",
+        "Subcategory": "Progression:groups:6",
+        "Description": "IndividualProgression.StartingProgression in individualProgression.conf.dist. 0 is stage PROGRESSION_START: Classic, level cap 60, Molten Core and Onyxia, not Wrath. The conf comment calls 0 disabled because it does not raise the start; new characters still begin at stage 0. 1-18 would start later.",
+        "FieldName": "IndividualProgressionStartingProgression",
+        "InputType": "number",
+        "ParamFieldName": "IndividualProgression.StartingProgression",
+        "DefaultValue": 0
+    },
+    {
+        "Keywords": "ollama,chat,bots",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DisplayName": "Ollama chat",
+        "Category": "World:public",
+        "Subcategory": "Ollama:groups:7",
+        "Description": "OllamaChat.Enable in mod_ollama_chat.conf.dist. 1 on, 0 off. Dist default 1. Bots chat in character only when OllamaChat.Url reaches a running Ollama server. A missing server does not stop worldserver from booting. The upstream README still points at liyunfan1223 forks; this build is not compile-tested against that note.",
+        "FieldName": "OllamaChatEnable",
+        "InputType": "number",
+        "ParamFieldName": "OllamaChat.Enable",
+        "DefaultValue": 1
+    },
+    {
+        "Keywords": "ollama,url",
+        "IncludeInCommandLine": false,
+        "EnumValues": {},
+        "DisplayName": "Ollama URL",
+        "Category": "World:public",
+        "Subcategory": "Ollama:groups:7",
+        "Description": "OllamaChat.Url in mod_ollama_chat.conf.dist. Dist default http://localhost:11434/api/generate. Chat does nothing useful until this is a running Ollama /api/generate endpoint. This template does not start Ollama.",
+        "FieldName": "OllamaChatUrl",
+        "InputType": "text",
+        "ParamFieldName": "OllamaChat.Url",
+        "DefaultValue": "http://localhost:11434/api/generate"
     }
 ]

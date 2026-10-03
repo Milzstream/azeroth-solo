@@ -8,10 +8,12 @@ if [ ! -f "$root/CMakeLists.txt" ] || [ ! -f "$root/docker-compose.yml" ]; then
   echo "Missing server source (CMakeLists.txt or docker-compose.yml). Clone Milzstream/azeroth-solo; do not expect a separate core checkout." >&2
   exit 1
 fi
-if [ ! -d "$root/modules/mod-playerbots/src" ]; then
-  echo "Missing modules/mod-playerbots source." >&2
-  exit 1
-fi
+for name in mod-playerbots mod-individual-progression mod-ollama-chat; do
+  if [ ! -d "$root/modules/$name/src" ]; then
+    echo "Missing modules/$name source." >&2
+    exit 1
+  fi
+done
 
 mkdir -p "$root/data/sql/custom/db_auth"
 cp -f "$root/sql/db_auth/"*.sql "$root/data/sql/custom/db_auth/"

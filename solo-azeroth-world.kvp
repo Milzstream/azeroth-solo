@@ -1,5 +1,5 @@
 Meta.DisplayName=Solo Azeroth World
-Meta.Description=AzerothCore 3.3.5a worldserver with mod-playerbots. Wrath of the Lich King, not Classic or Retail. Native process, not a container.
+Meta.Description=AzerothCore 3.3.5a worldserver with mod-playerbots, per-character individual progression starting at Classic, and mod-ollama-chat (needs an Ollama URL). Wrath client, not Classic or Retail. Native process, not a container.
 Meta.OS=Windows, Linux
 Meta.AarchSupport=Unknown
 Meta.Arch=x86_64
