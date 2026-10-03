@@ -142,13 +142,46 @@ On Windows, use PowerShell and Docker Desktop. The `.sh` files are for a Unix sh
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows.ps1
 ```
 
-`scripts/windows.ps1` is the Windows path for the same local test as `scripts/bootstrap.sh` plus `scripts/dc.sh build` and `scripts/dc.sh up -d`. It does not clone anything. It copies `sql/db_auth/*.sql` into `data/sql/custom/db_auth/`. If `.env` is missing it copies `.env.example` to `.env` and stops. Set `DOCKER_DB_ROOT_PASSWORD` in `.env` (replace `change-me`; an empty value makes the pinned compose file use `password`) and run the same command again.
+`scripts/windows.ps1` copies `sql/db_auth/*.sql` into `data/sql/custom/db_auth/`, then gets the Windows extractor tools and prints the folder they landed in. It does not clone anything. Docker Compose is the second step, and only after `client-data/` has the extracted directories.
 
-Put the extracted folders in `client-data/` before that command starts Compose: `client-data/dbc`, `client-data/maps`, `client-data/vmaps`, `client-data/mmaps`, and `Cameras`. That directory is `DOCKER_VOL_DATA` in `.env.example`. Do not put extracts under `data/`. The script stops if `dbc`, `maps`, `vmaps`, or `mmaps` are missing or empty. This repo does not download them.
+That command does not install Visual Studio. It uses `gh` to download the latest successful Actions artifact named `windows-extractor-tools` (workflow `.github/workflows/windows-extractor-tools.yml`, `windows-latest`) into `env\dist\bin`. `gh auth login` is required. Actions artifacts are not an anonymous download. The artifact is `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, `mmaps_generator.exe`, `mmaps-config.yaml`, and any non-Windows DLLs those exes import. It is not a GitHub Release. AMP still looks at the latest release for `solo-azeroth-linux-x86_64.tar.gz`.
 
-`map_extractor.exe` is not in the repo. `apps/extractor/extractor.bat` is only a menu. It starts `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, and `mmaps_generator.exe` from the client directory. It does not compile them. There is no Windows tools build in this repo that avoids Visual Studio, and `scripts/windows.ps1` does not produce those executables. Do not expect a one-click `.exe`. The Docker `ac-tools` image in [Get the extractor binaries](#get-the-extractor-binaries) builds Linux binaries named `map_extractor`, not `map_extractor.exe`. `extractor.bat` cannot run those.
+Copy every file from `env\dist\bin` into the Wrath 3.3.5a client directory (the folder with `Wow.exe` and `Data`). Run the tools there, in the order in [Client data](#client-data-still-required). `apps/extractor/extractor.bat` is only that menu. It does not compile them. The Docker `ac-tools` image in [Get the extractor binaries](#get-the-extractor-binaries) builds Linux binaries named `map_extractor`, not `map_extractor.exe`.
 
-The pinned core does have a Visual Studio tools build, and it is the full compiler, not a shortcut. `conf/dist/config.cmake` lists `TOOLS_BUILD` values `all` and `maps-only`. `maps-only` is the whitelist for the CMake targets `map_extractor`, `vmap4_extractor`, `vmap4_assembler`, and `mmaps_generator` (`src/tools/CMakeLists.txt`). For MSVC, `src/cmake/compiler/msvc/settings.cmake` sets `CMAKE_RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`, so a Visual Studio build writes the executables under `<build directory>/bin/<Configuration>/`. The upstream pages that use that layout are [Windows core installation](https://www.azerothcore.org/wiki/windows-core-installation) (`TOOLS_BUILD` set to `all`, then Visual Studio `ALL_BUILD`, RelWithDebInfo, x64) and [Windows server setup](https://www.azerothcore.org/wiki/windows-server-setup), which copies `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, and `mmaps_generator.exe` from `C:\Build\bin\RelWithDebInfo\` when the build directory is `C:\Build`. `.github/workflows/windows_build.yml` is the same kind of full build (`CTOOLS_BUILD=all`, then `./acore.sh compiler build`) and is not run by this script.
+If `dbc`, `maps`, `vmaps`, or `mmaps` are missing, the script stops after the tools step and does not start Docker. Put those directories, plus `Cameras`, in `client-data/` (`DOCKER_VOL_DATA` in `.env.example`). Do not put extracts under `data/`. Copy `.env.example` to `.env`, set `DOCKER_DB_ROOT_PASSWORD` (replace `change-me`; an empty value makes the pinned compose file use `password`), and run the same command again. This repo does not download client data.
+
+The same download without the script:
+
+```powershell
+gh run list --repo Milzstream/azeroth-solo --workflow windows-extractor-tools.yml --branch main --status success --limit 1
+gh run download RUN_ID --repo Milzstream/azeroth-solo --name windows-extractor-tools --dir .\env\dist\bin
+```
+
+### Local MSVC build (heavy)
+
+Skip this if the artifact download worked. It needs Visual Studio, Boost (`BOOST_ROOT`), a MySQL client library CMake can find, and OpenSSL (`OPENSSL_ROOT_DIR`). There is no separate cmake command line in the upstream Windows pages, so this repo does not invent one.
+
+`apps/ci/ci-conf-tools.sh` is the tools configuration: `CAPPS_BUILD=none`, `CTOOLS_BUILD=maps-only`, `CSCRIPTPCH=OFF`, `CCOREPCH=OFF`. `conf/dist/config.sh` reads `CAPPS_BUILD` and `CTOOLS_BUILD` from the environment (`${CAPPS_BUILD:-all}`, `${CTOOLS_BUILD:-none}`). `maps-only` is the whitelist in `conf/dist/config.cmake` and `src/tools/CMakeLists.txt` for `map_extractor`, `vmap4_extractor`, `vmap4_assembler`, and `mmaps_generator`. `APPS_BUILD=none` does not build `authserver` or `worldserver`. `./acore.sh compiler build` is the entry point `.github/workflows/windows_build.yml` already uses (that workflow passes `CTOOLS_BUILD=all` and builds the whole server; this one does not).
+
+From Git Bash, in this clone:
+
+```bash
+export CAPPS_BUILD=none
+export CTOOLS_BUILD=maps-only
+export CSCRIPTPCH=OFF
+export CCOREPCH=OFF
+./acore.sh compiler build
+```
+
+Or:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows.ps1 -LocalBuild
+```
+
+On Git Bash, `OSTYPE` is `cygwin`. `apps/compiler/includes/functions.sh` runs `cmake --install` only for `msys*` and `linux*|darwin*`, so the exes stay in `var\build\obj\bin\Release\` (`CTYPE` defaults to `Release` in `conf/dist/config.sh`). For MSVC, `src/cmake/compiler/msvc/settings.cmake` sets `CMAKE_RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`, which is why the configuration name is a subdirectory. That local build does not copy OpenSSL DLLs. [Windows core installation](https://www.azerothcore.org/wiki/windows-core-installation) says to copy `libcrypto-3-x64.dll` and `libssl-3-x64.dll` from the OpenSSL `bin` directory next to the executables.
+
+The upstream [Windows core installation](https://www.azerothcore.org/wiki/windows-core-installation) page is the GUI path, not a cmake command: set `TOOLS_BUILD` to `all`, then Visual Studio `ALL_BUILD`, RelWithDebInfo, x64. [Windows server setup](https://www.azerothcore.org/wiki/windows-server-setup) copies the four exes from `C:\Build\bin\RelWithDebInfo\` when the build directory is `C:\Build`. That builds the whole server.
 
 ### Docker accounts
 
