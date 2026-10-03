@@ -1,5 +1,6 @@
 # Builds a native Linux x86_64 authserver + worldserver with mod-playerbots
-# and publishes solo-azeroth-linux-x86_64.tar.gz on a GitHub Release.
+# from the source already in this repository, and publishes
+# solo-azeroth-linux-x86_64.tar.gz on a GitHub Release.
 # Manual only. A full AzerothCore compile is large; this workflow is not run
 # just by pushing the repository.
 name: release-linux
@@ -17,33 +18,19 @@ jobs:
       - name: Checkout this repo
         uses: actions/checkout@v4
 
-      - name: Read pins
+      - name: Read import record
         id: pins
         shell: bash
         run: |
           set -euo pipefail
-          # pins.env is KEY=VALUE
+          # pins.env is KEY=VALUE. Attribution only; the build uses this checkout.
           source pins.env
           echo "ac_repo=$AZEROTHCORE_REPO" >> "$GITHUB_OUTPUT"
           echo "ac_sha=$AZEROTHCORE_SHA" >> "$GITHUB_OUTPUT"
           echo "pb_repo=$PLAYERBOTS_REPO" >> "$GITHUB_OUTPUT"
           echo "pb_sha=$PLAYERBOTS_SHA" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout pinned AzerothCore Playerbot fork
-        uses: actions/checkout@v4
-        with:
-          repository: mod-playerbots/azerothcore-wotlk
-          ref: ${{ steps.pins.outputs.ac_sha }}
-          path: src/azerothcore-wotlk
-          fetch-depth: 1
-
-      - name: Checkout pinned mod-playerbots
-        uses: actions/checkout@v4
-        with:
-          repository: mod-playerbots/mod-playerbots
-          ref: ${{ steps.pins.outputs.pb_sha }}
-          path: src/azerothcore-wotlk/modules/mod-playerbots
-          fetch-depth: 1
+          test -f CMakeLists.txt
+          test -d modules/mod-playerbots/src
 
       - name: Install build packages
         run: |
@@ -53,7 +40,6 @@ jobs:
             libreadline-dev libncurses-dev mysql-server libboost-all-dev
 
       - name: Configure and build
-        working-directory: src/azerothcore-wotlk
         run: |
           set -euo pipefail
           cmake -B build -S . \
@@ -70,7 +56,7 @@ jobs:
           set -euo pipefail
           inst="$RUNNER_TEMP/ac-install"
           stage="$RUNNER_TEMP/stage"
-          core="$GITHUB_WORKSPACE/src/azerothcore-wotlk"
+          core="$GITHUB_WORKSPACE"
           rm -rf "$stage"
           mkdir -p "$stage/bin" "$stage/etc/modules" "$stage/configs/modules" "$stage/sql/core/modules/mod-playerbots"
 
@@ -132,12 +118,13 @@ jobs:
             --title "Linux x86_64 ${GITHUB_SHA::7}" \
             --notes "$(cat <<NOTES
           Native Linux build of authserver, worldserver, and dbimport with mod-playerbots compiled in.
-          Built on ubuntu-22.04 from the pins in pins.env.
+          Built on ubuntu-22.04 from the source in this repository (commit ${GITHUB_SHA}).
           Asset: solo-azeroth-linux-x86_64.tar.gz
 
           No Windows asset in this release. The AMP template also names solo-azeroth-windows-x86_64.zip, which is not produced here.
           No WoW client data is included. Extract maps, vmaps, mmaps, dbc, and Cameras from your own 3.3.5a client.
 
+          Import record (not a clone at build time):
           Core: ${{ steps.pins.outputs.ac_sha }}
           mod-playerbots: ${{ steps.pins.outputs.pb_sha }}
           NOTES

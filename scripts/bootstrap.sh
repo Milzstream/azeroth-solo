@@ -1,26 +1,19 @@
 #!/usr/bin/env bash
-# Check out the pinned Playerbot fork and mod-playerbots. Does not download client data.
+# Prepare this tree for Docker. The server source is already in the repo.
+# Does not clone upstream and does not download client data.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck disable=SC1091
-source "$root/pins.env"
-src="$root/src/azerothcore-wotlk"
 
-checkout() {
-  local url="$1" sha="$2" dest="$3"
-  if [ ! -d "$dest/.git" ]; then
-    mkdir -p "$(dirname "$dest")"
-    git clone --filter=blob:none --no-checkout "$url" "$dest"
-  fi
-  git -C "$dest" fetch --depth 1 origin "$sha"
-  git -C "$dest" checkout --detach FETCH_HEAD
-  echo "pinned $(git -C "$dest" rev-parse HEAD) $dest"
-}
+if [ ! -f "$root/CMakeLists.txt" ] || [ ! -f "$root/docker-compose.yml" ]; then
+  echo "Missing server source (CMakeLists.txt or docker-compose.yml). Clone Milzstream/azeroth-solo; do not expect a separate core checkout." >&2
+  exit 1
+fi
+if [ ! -d "$root/modules/mod-playerbots/src" ]; then
+  echo "Missing modules/mod-playerbots source." >&2
+  exit 1
+fi
 
-checkout "$AZEROTHCORE_REPO" "$AZEROTHCORE_SHA" "$src"
-checkout "$PLAYERBOTS_REPO" "$PLAYERBOTS_SHA" "$src/modules/mod-playerbots"
-
-mkdir -p "$src/data/sql/custom/db_auth"
-cp -f "$root/sql/db_auth/"*.sql "$src/data/sql/custom/db_auth/"
+mkdir -p "$root/data/sql/custom/db_auth"
+cp -f "$root/sql/db_auth/"*.sql "$root/data/sql/custom/db_auth/"
 echo "Copied realm-name SQL into data/sql/custom/db_auth (applied by db-import)."
-echo "Next: copy .env.example to .env, extract client data into data/client, then ./scripts/dc.sh"
+echo "Next: copy .env.example to .env, extract client data into client-data/, then ./scripts/dc.sh"

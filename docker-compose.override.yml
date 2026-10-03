@@ -1,6 +1,6 @@
 # Local test only. AMP does not use this file and does not run these containers.
-# The base file is the pinned fork's docker-compose.yml, checked out by scripts/bootstrap.sh.
-# Do not edit that upstream file. This override is the supported extension point.
+# The base file is docker-compose.yml in this repo (imported with the core).
+# This override is the supported extension point for Solo Azeroth settings.
 
 services:
   ac-worldserver:

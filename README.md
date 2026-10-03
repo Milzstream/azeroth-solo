@@ -2,25 +2,25 @@
 
 Wrath of the Lich King **3.3.5a** (client build **12340**). Not Classic. Not Retail.
 
-This repo is a small wrapper. It does not contain the AzerothCore source, the playerbots source, or any Blizzard client files. Two ways to run it:
+This repo is the source of truth. It contains the AzerothCore Playerbot server and the `mod-playerbots` module. Clone it and edit it here. It does not contain Blizzard client files. Two ways to run it:
 
 - **Docker Compose** on your own machine, for you and a friend to test. AMP does not use this.
 - **CubeCoders AMP**, as a normal process in the Create Instance list (same idea as ARK or 7 Days to Die). AMP downloads a Linux build from a GitHub Release and starts `authserver` and `worldserver` itself. There is no AMP Docker image and `DockerRequired` is false.
 
 No release has been published yet. The compile is large, so `.github/workflows/release-linux.yml` is manual (`workflow_dispatch`) and was not run while this repo was created. AMP Update fails until that workflow has published `solo-azeroth-linux-x86_64.tar.gz`.
 
-## What is pinned
+## Where the code came from
 
-`mod-playerbots` does not build against stock [azerothcore/azerothcore-wotlk](https://github.com/azerothcore/azerothcore-wotlk). Upstream's own install guide says to use the Playerbot fork. `liyunfan1223/mod-playerbots` now resolves to the org repo below.
+The files on `main` are what you build and edit. The URLs below are attribution for the import, not a checkout the build performs. `mod-playerbots` does not build against stock [azerothcore/azerothcore-wotlk](https://github.com/azerothcore/azerothcore-wotlk). Upstream's own install guide says to use the Playerbot fork. `liyunfan1223/mod-playerbots` now resolves to the org repo below.
 
-| Piece | URL | Git revision |
-| --- | --- | --- |
-| Core (branch `Playerbot`) | https://github.com/mod-playerbots/azerothcore-wotlk | `f19a18799a35f7c24bdcdc9ea399c601f166259b` |
-| Module (branch `master`) | https://github.com/mod-playerbots/mod-playerbots | `037c01418b5d01506917a3db9b44fd56ac5f965c` |
+| Piece | Upstream URL | Imported revision | Path in this repo |
+| --- | --- | --- | --- |
+| Core (branch `Playerbot`) | https://github.com/mod-playerbots/azerothcore-wotlk | `f19a18799a35f7c24bdcdc9ea399c601f166259b` | repository root (`src/`, `CMakeLists.txt`, `docker-compose.yml`) |
+| Module (branch `master`) | https://github.com/mod-playerbots/mod-playerbots | `037c01418b5d01506917a3db9b44fd56ac5f965c` | `modules/mod-playerbots` |
 
-Those SHAs are in `pins.env`. Do not move them to "latest" without editing that file.
+Those SHAs are recorded in `pins.env`. Docker, `scripts/bootstrap.sh`, and `.github/workflows/release-linux.yml` do not clone them. A newer upstream revision means importing that tree into this repo, not pointing the build at someone else's remote.
 
-Both upstream projects are **GPL-2.0**. This wrapper (scripts, override, templates, workflow, docs) is **MIT**. See `LICENSE`. Nothing here relicensses upstream code.
+The imported core and module stay **GPL-2.0**. This repo does not relicense them. See `LICENSE` and `modules/mod-playerbots/LICENSE`.
 
 ## What you must supply
 
@@ -44,7 +44,7 @@ Tools, in this order (names are the binaries, not the script):
 
 ### Get the extractor binaries
 
-They are built with the core. From a Docker checkout (after [Local test](#local-test-with-docker) bootstrap and `.env`):
+They are built with the core. From this repo (after [Local test](#local-test-with-docker) and `.env`):
 
 ```bash
 ./scripts/dc.sh --profile tools build ac-tools
@@ -75,7 +75,7 @@ rm -rf Buildings
 
 Copy `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` as **directories**, not packed into this git repo.
 
-- Docker: `<this repo>/data/client/` so you have `data/client/dbc`, `data/client/maps`, and so on. That path is `DOCKER_VOL_DATA` in `.env.example`.
+- Docker: `<this repo>/client-data/` so you have `client-data/dbc`, `client-data/maps`, and so on. That path is `DOCKER_VOL_DATA` in `.env.example`. Do not put extracts under `data/`; that directory is the core SQL tree.
 - AMP: the **world** instance File Manager (or a copy on disk) at `serverfiles/data/` (dbc, maps, vmaps, mmaps, Cameras). `DataDir` in the world template defaults to `data`, and the process working directory is `serverfiles`. Auth does not need these files.
 
 AMP's update only unpacks the GitHub Release (binaries, conf files, SQL). It does not run extractors and it does not contain client data.
@@ -92,9 +92,9 @@ cp .env.example .env
 ./scripts/bootstrap.sh
 ```
 
-`bootstrap.sh` checks out the two pinned SHAs under `src/` (gitignored) and copies `sql/db_auth/2026_10_02_00_solo_azeroth_realm.sql` into `data/sql/custom/db_auth/`. The pinned auth `updates_include` table marks `$/data/sql/custom/db_auth` as `CUSTOM`, so db-import applies that `UPDATE` and the realm name becomes **Solo Azeroth**.
+`bootstrap.sh` does not clone anything. It copies `sql/db_auth/2026_10_02_00_solo_azeroth_realm.sql` into `data/sql/custom/db_auth/`. The auth `updates_include` table marks `$/data/sql/custom/db_auth` as `CUSTOM`, so db-import applies that `UPDATE` and the realm name becomes **Solo Azeroth**.
 
-Put the extracted folders in `data/client/` **before** the first `up`. `docker-compose.override.yml` replaces `ac-client-data-init` so it will not download data; it exits if `dbc`, `maps`, `vmaps`, or `mmaps` are missing.
+Put the extracted folders in `client-data/` **before** the first `up`. `docker-compose.override.yml` replaces `ac-client-data-init` so it will not download data; it exits if `dbc`, `maps`, `vmaps`, or `mmaps` are missing.
 
 ```bash
 ./scripts/dc.sh build
@@ -105,14 +105,14 @@ Put the extracted folders in `data/client/` **before** the first `up`. `docker-c
 
 ```bash
 docker compose \
-  --project-directory src/azerothcore-wotlk \
-  -f src/azerothcore-wotlk/docker-compose.yml \
+  --project-directory . \
+  -f docker-compose.yml \
   -f docker-compose.override.yml \
   --env-file .env \
   "$@"
 ```
 
-The base compose file is the one in the pinned fork (`docker-compose.yml` at `f19a1879`). It starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. The world image is built from that checkout with `modules/mod-playerbots` in the build context, which is how the pinned `apps/docker/Dockerfile` compiles modules (`COPY modules`). The override also bind-mounts `./modules` onto `/azerothcore/modules` because playerbots applies its SQL from that source path, and the worldserver runtime stage does not copy the module tree.
+The base compose file is `docker-compose.yml` in this repo. It starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. The world image is built from this tree with `modules/mod-playerbots` in the build context, which is how `apps/docker/Dockerfile` compiles modules (`COPY modules`). The override also bind-mounts `./modules` onto `/azerothcore/modules` because playerbots applies its SQL from that source path, and the worldserver runtime stage does not copy the module tree.
 
 Logs: `./scripts/dc.sh logs -f ac-worldserver`. Stop: `./scripts/dc.sh down`.
 
@@ -234,11 +234,11 @@ If `git push` says it could not read a username, use:
 git -c credential.helper='!gh auth git-credential' push
 ```
 
-Do not commit `.env`, `src/`, `data/`, logs, or client extracts. Bumping the game means changing `pins.env` to a new real SHA and rebuilding. Update the core and the module together; the module docs say mismatched revisions fail.
+Do not commit `.env`, `client-data/`, logs, build output, or client extracts. The server source, including `src/` and `modules/mod-playerbots`, belongs in this repo. `pins.env` only records the import; editing it does not change what gets compiled.
 
 ## What this repo does not do
 
 - It does not host or start a public realm.
-- It does not vendor the AzerothCore tree (the checkout is local, from the pins).
+- It does not clone AzerothCore or mod-playerbots when you build. Those trees are already here.
 - It does not download or store client data.
 - It does not ship an AMP container, and the templates do not name a Docker image.
