@@ -25,6 +25,7 @@
 /data/sql/custom/*
 /src/server/scripts/Custom/*
 !/src/server/scripts/Custom/README.md
+!/src/server/scripts/Custom/custom_script_loader.cpp
 
 /*.override.yml
 /*.override.yaml
