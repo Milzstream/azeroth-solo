@@ -43,6 +43,11 @@ std::string StripDecorativeUnicode(const std::string& text);
 // never splits a UTF-8 sequence.
 std::string ClampReplyLength(const std::string& text, uint32_t maxLen);
 
+// Chatbot boilerplate no WoW player would type ("I'll keep that in mind for my
+// responses", "happy to help"). Small models produce it when the prompt confuses
+// them; the reply is dropped rather than shown. Case-insensitive.
+bool LooksLikeAssistantSpeak(const std::string& text);
+
 // Run the full pipeline. Returns an empty string only when nothing usable
 // survived, in which case the caller should skip the reply.
 //
