@@ -1,5 +1,5 @@
 Meta.DisplayName=Solo Azeroth Auth
-Meta.Description=AzerothCore 3.3.5a authserver for Solo Azeroth. Pair with the world template. AMP-managed Linux containerization is optional.
+Meta.Description=AzerothCore 3.3.5a authserver for Solo Azeroth. Pair with the world template. AMP-managed Linux containerization is optional. The database is the AMP MySQL instance on this same host, not a separate host.
 Meta.OS=Linux
 Meta.AarchSupport=Unknown
 Meta.Arch=x86_64
