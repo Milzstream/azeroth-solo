@@ -103,9 +103,21 @@ function Write-LocalBuildCommand {
 }
 
 function Find-DockerDesktopExe {
-    foreach ($base in @($env:ProgramFiles, [Environment]::GetEnvironmentVariable("ProgramFiles(x86)"), (Join-Path $env:LOCALAPPDATA "Programs"))) {
-        if (-not $base) { continue }
-        $exe = Join-Path $base "Docker\Docker\Docker Desktop.exe"
+    $candidates = @()
+    # A per-user install puts docker.exe at <install>\resources\bin, so walk up from the CLI first.
+    $cli = Get-Command docker -ErrorAction SilentlyContinue
+    if ($cli) {
+        $installDir = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $cli.Source))
+        $candidates += (Join-Path $installDir "Docker Desktop.exe")
+    }
+    foreach ($base in @($env:ProgramFiles, [Environment]::GetEnvironmentVariable("ProgramFiles(x86)"))) {
+        if ($base) { $candidates += (Join-Path $base "Docker\Docker\Docker Desktop.exe") }
+    }
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe")
+        $candidates += (Join-Path $env:LOCALAPPDATA "Programs\Docker\Docker\Docker Desktop.exe")
+    }
+    foreach ($exe in $candidates) {
         if (Test-Path -LiteralPath $exe -PathType Leaf) { return $exe }
     }
     return $null
