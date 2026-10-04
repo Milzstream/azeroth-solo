@@ -147,7 +147,7 @@ The base Compose file starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-auth
 
 ### Published Docker images
 
-The `docker-release` workflow builds and publishes `ghcr.io/milzstream/azeroth-solo` on pushes to `develop` and `main`. `main` is the stable tag; `develop` is for previews; `sha-<commit>` tags pin an exact build. Pull requests build the image without publishing it. On the first publish, set the GHCR package visibility to **Public** in GitHub Package settings if you want anonymous Docker pulls.
+The `docker-release` workflow builds and publishes `ghcr.io/milzstream/azeroth-solo` only on pushes to `main`, tagging the image `main`, `latest`, and `sha-<commit>`. Developers can build locally on `develop`; merging a promotion PR into `main` triggers the stable image build. On the first publish, set the GHCR package visibility to **Public** in GitHub Package settings if you want anonymous Docker pulls.
 
 For a checkout or the Windows support bundle, `scripts/BuildAndStart.ps1` pulls the published `main` image by default. Add `-BuildImages` to build the current source instead. `.env` can set `DOCKER_IMAGE_TAG=develop` or a `sha-*` tag to test another image.
 
@@ -167,7 +167,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\BuildAndStart.ps1
 
 `scripts/BuildAndStart.ps1` copies the realm-name SQL into `data/sql/custom/db_auth/`, checks for extracted client data, then pulls the published `main` image and starts Compose. The release ZIP includes the Windows extractor tools, Compose files, `.env.example`, the SQL, and both PowerShell scripts, so it does not require a source checkout or GitHub CLI login.
 
-To build the server images from source instead, run with `-BuildImages` from a full repository checkout. Set `DOCKER_IMAGE_TAG=develop` in `.env` to test the development image. A source checkout without bundled extractor tools can still download the Actions artifact with `gh auth login`.
+To build the server images from source instead, run with `-BuildImages` from a full repository checkout. A source checkout without bundled extractor tools can still download the Actions artifact with `gh auth login`.
 
 Copy every file from `env\dist\bin` into the Wrath 3.3.5a client directory (the folder with `Wow.exe` and `Data`). Run the tools there, in the order in [Client data](#client-data-still-required). `apps/extractor/extractor.bat` is only that menu. It does not compile them. The Docker `ac-tools` image in [Get the extractor binaries](#get-the-extractor-binaries) builds Linux binaries named `map_extractor`, not `map_extractor.exe`.
 

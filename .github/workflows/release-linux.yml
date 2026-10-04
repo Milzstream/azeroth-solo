@@ -10,9 +10,11 @@ permissions:
 
 jobs:
   windows-tools:
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/windows-extractor-tools.yml
 
   linux:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repo
@@ -119,6 +121,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    if: github.ref == 'refs/heads/main'
     needs: [linux, windows-tools]
     runs-on: ubuntu-22.04
     permissions:
