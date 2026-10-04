@@ -3,6 +3,10 @@
 # This override is the supported extension point for Solo Azeroth settings.
 
 services:
+  ac-db-import:
+    volumes:
+      - ./data/sql/custom/db_auth:/azerothcore/data/sql/custom/db_auth:ro
+
   ac-worldserver:
     environment:
       # Names follow IniKeyToEnvVarKey in the pinned core (Config.cpp): AC_ + uppercase, dot to _,
@@ -30,9 +34,7 @@ services:
       AC_AUCTION_HOUSE_BOT_ACCOUNT: "${DOCKER_AHBOT_ACCOUNT:-0}"
       AC_AUCTION_HOUSE_BOT_GUID: "${DOCKER_AHBOT_GUID:-0}"
     volumes:
-      # worldserver applies playerbots SQL from the compiled source dir /azerothcore/modules.
-      # The runtime image does not contain the module tree; the mount supplies it.
-      - ./modules:/azerothcore/modules:ro
+      # Keep the local AH Bot config editable; module source and SQL are baked into the image.
       - ./modules/mod-ah-bot/conf/mod_ahbot.conf.dist:/azerothcore/env/dist/etc/modules/mod_ahbot.conf:ro
     depends_on:
       ac-ollama-model-init:
