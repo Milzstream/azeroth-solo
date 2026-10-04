@@ -3,6 +3,7 @@
 #include "mod-ollama-chat_config.h"
 #include "mod-ollama-chat_expression.h"
 #include "mod-ollama-chat_governor.h"
+#include "mod-ollama-chat_intent.h"
 #include "mod-ollama-chat_memory.h"
 #include "mod-ollama-chat_response.h"
 #include "mod-ollama-chat_roleplay.h"
@@ -37,7 +38,7 @@ namespace
 {
     using Clock = std::chrono::steady_clock;
 
-    enum class TaskType : uint8_t { ChatReply, Sentiment, Condense, Relationship };
+    enum class TaskType : uint8_t { ChatReply, Sentiment, Condense, Relationship, Intent };
 
     struct Task
     {
@@ -63,6 +64,10 @@ namespace
         std::string       text;
         uint32_t          emoteId = 0;
         Clock::time_point deliverAt;
+
+        // Set for an intent decision rather than a chat line.
+        bool      isIntent = false;
+        BotIntent intent   = BotIntent::None;
     };
 
     // --- shared state -----------------------------------------------------
@@ -155,6 +160,33 @@ namespace
         g_done.push_back(std::move(completion));
     }
 
+    void RunIntentTask(const Task& task)
+    {
+        OllamaApiResult api = QueryOllama(task.request.prompt, OllamaRequestKind::Intent);
+        if (!api.ok)
+        {
+            RecordError(api.error);
+            return;
+        }
+
+        BotIntent const intent = Intent_ParseReply(api.text);
+        if (g_DebugEnabled)
+            LOG_INFO("module.ollamachat", "[Ollama Chat] Intent for {}: '{}' -> {}",
+                     task.request.botName, api.text, Intent_Name(intent));
+
+        if (intent == BotIntent::None)
+            return;
+
+        Completion completion;
+        completion.request   = task.request;
+        completion.isIntent  = true;
+        completion.intent    = intent;
+        completion.deliverAt = Clock::now();
+
+        std::lock_guard<std::mutex> lock(g_doneMutex);
+        g_done.push_back(std::move(completion));
+    }
+
     void RunSentimentTask(const Task& task)
     {
         // Sentiment touches only mutex-guarded in-memory state and async DB
@@ -189,6 +221,9 @@ namespace
                 {
                     case TaskType::Sentiment:
                         RunSentimentTask(task);
+                        break;
+                    case TaskType::Intent:
+                        RunIntentTask(task);
                         break;
                     case TaskType::Condense:
                         Memory_RunCondensation(task.memoryBotGuid, task.memoryPrompt);
@@ -326,6 +361,12 @@ namespace
 
     void Deliver(const Completion& c, const OllamaWorldSnapshot& world)
     {
+        if (c.isIntent)
+        {
+            OllamaIntent_Apply(c.request.botGuid, c.request.targetGuid, c.intent);
+            return;
+        }
+
         Player* bot = ObjectAccessor::FindConnectedPlayer(ObjectGuid(c.request.botGuid));
         if (!bot || !bot->IsInWorld())
             return;
@@ -547,6 +588,36 @@ void OllamaDispatch_SubmitSentiment(uint64_t botGuid, uint64_t playerGuid,
         g_queue.push_back(std::move(task));
     }
 
+    g_queueCv.notify_one();
+}
+
+void OllamaDispatch_SubmitIntent(uint64_t botGuid, uint64_t speakerGuid,
+                                 const std::string& botName, std::string prompt)
+{
+    if (botGuid == 0 || speakerGuid == 0 || prompt.empty())
+        return;
+
+    Task task;
+    task.type                = TaskType::Intent;
+    task.request.botGuid     = botGuid;
+    task.request.targetGuid  = speakerGuid;
+    task.request.botName     = botName;
+    task.request.prompt      = std::move(prompt);
+    task.request.kind        = OllamaRequestKind::Intent;
+
+    {
+        std::lock_guard<std::mutex> lock(g_queueMutex);
+        if (!g_running)
+            return;
+        if (g_MaxQueueDepth > 0 && g_queue.size() >= g_MaxQueueDepth)
+        {
+            ++g_droppedQueueFull;
+            return;
+        }
+        g_queue.push_back(std::move(task));
+    }
+
+    ++g_totalSubmitted;
     g_queueCv.notify_one();
 }
 

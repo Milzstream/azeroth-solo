@@ -1212,6 +1212,29 @@ OllamaChat.Repetition.OpenerHistorySize = 8
 
 ###############################################################################
 #
+#   OLLAMA CHAT - INTENT LAYER
+#
+#   Lets a grouped bot act on what its master says ("want to quest together?")
+#   instead of only chatting about it. The LLM never runs anything: it picks ONE
+#   word from a fixed list (follow, stay, grind, quest, none) and each word maps
+#   to a fixed playerbots plan. See INTENT_LAYER.md.
+#
+###############################################################################
+
+#    OllamaChat.Intent.Enable
+#        Classify party, raid and whisper lines from a bot's master and apply
+#        the matching playerbots plan. Costs one extra LLM call per bot per
+#        line that looks like a request.
+#        Default: 0
+OllamaChat.Intent.Enable = 0
+
+#    OllamaChat.Intent.CooldownSeconds
+#        Minimum gap between two classifications for the same bot.
+#        Default: 10
+OllamaChat.Intent.CooldownSeconds = 10
+
+###############################################################################
+#
 #   OLLAMA CHAT - TOPIC ENGINE
 #
 #   What bots choose to talk about. The old pool was uniform over thirteen

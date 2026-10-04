@@ -34,6 +34,7 @@ enum class OllamaRequestKind : uint8_t
     EventChatter,
     Sentiment,
     RoleplayReply,
+    Intent,
 };
 
 enum class OllamaThinkSupport : uint8_t

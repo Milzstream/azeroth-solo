@@ -202,6 +202,10 @@ extern float    g_RepetitionSimilarityThreshold;
 extern uint32_t g_RepetitionWindowSeconds;
 extern uint32_t g_OpenerHistorySize;
 
+// Intent layer: grouped bots act on what their master asks for.
+extern bool     g_IntentEnable;
+extern uint32_t g_IntentCooldownSeconds;
+
 // --------------------------------------------
 // Topic engine
 // --------------------------------------------

@@ -3047,6 +3047,9 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
         ChatMsg type = CHAT_MSG_WHISPER;
         if (currentChat.second - time(nullptr) >= 1)
             type = currentChat.first;
+        // Progress updates from a grouped companion read as party chat, not as private whispers.
+        else if (bot->GetGroup() && bot->GetGroup() == master->GetGroup() && !masterBotAI)
+            type = CHAT_MSG_PARTY;
 
         WorldPacket data;
         ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,

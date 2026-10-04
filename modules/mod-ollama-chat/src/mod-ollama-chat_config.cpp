@@ -124,6 +124,9 @@ float    g_RepetitionSimilarityThreshold = 0.72f;
 uint32_t g_RepetitionWindowSeconds       = 1800;
 uint32_t g_OpenerHistorySize             = 8;
 
+bool     g_IntentEnable                  = false;
+uint32_t g_IntentCooldownSeconds         = 10;
+
 // --------------------------------------------
 // Topic engine
 // --------------------------------------------
@@ -717,6 +720,10 @@ void LoadOllamaChatConfig()
     g_RepetitionSimilarityThreshold   = sConfigMgr->GetOption<float>("OllamaChat.Repetition.SimilarityThreshold", 0.72f);
     g_RepetitionWindowSeconds         = sConfigMgr->GetOption<uint32_t>("OllamaChat.Repetition.WindowSeconds", 1800);
     g_OpenerHistorySize               = sConfigMgr->GetOption<uint32_t>("OllamaChat.Repetition.OpenerHistorySize", 8);
+
+    // --- Intent layer ----------------------------------------------------
+    g_IntentEnable                    = sConfigMgr->GetOption<bool>("OllamaChat.Intent.Enable", false);
+    g_IntentCooldownSeconds           = sConfigMgr->GetOption<uint32_t>("OllamaChat.Intent.CooldownSeconds", 10);
 
     // --- Topic engine ----------------------------------------------------
     g_TopicWeightPeople               = sConfigMgr->GetOption<uint32_t>("OllamaChat.Topic.WeightPeople", 30);
