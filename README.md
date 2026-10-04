@@ -5,9 +5,9 @@ Wrath of the Lich King **3.3.5a** (client build **12340**). Not Classic. Not Ret
 This repo is the source of truth. It contains the AzerothCore Playerbot server and five modules under `modules/` (see [Modules in the tree](#modules-in-the-tree)). Clone it and edit it here. It does not contain Blizzard client files. Two ways to run it:
 
 - **Docker Compose** on your own machine, for you and a friend to test. AMP does not use this.
-- **CubeCoders AMP**, using its Generic module templates. AMP downloads the Linux release and can run it natively or in AMP-managed Linux containers; no custom Docker image is required.
+- **CubeCoders AMP**, using its Generic module templates. For local AMP, run authserver, worldserver, and dbimport as native processes with container/Docker left off. AMP downloads `solo-azeroth-linux-x86_64.tar.gz` from this repo's [GitHub Releases](https://github.com/Milzstream/azeroth-solo/releases). Docker Compose stays optional and local-only; it is not required for the native AMP server.
 
-No release has been published yet. The compile is large, so `.github/workflows/release-linux.yml` is manual (`workflow_dispatch`) and was not run while this repo was created. AMP Update fails until that workflow has published `solo-azeroth-linux-x86_64.tar.gz`.
+`release-linux` on `main` publishes that Linux tarball (plus the Windows Docker support ZIP) automatically. Use **workflow_dispatch** on `main` only to retry a failed release. Until a Release exists, AMP Update has nothing to unpack.
 
 ## Where the code came from
 
@@ -267,25 +267,29 @@ The worldserver image sets `AC_UPDATES_ENABLE_DATABASES=0` and runs core SQL in 
 
 ## AMP
 
-AMP runs two instances because a Generic template has one executable. Create both from this repo after Fetch Latest:
+### Local AMP setup (native)
+
+Use this path on your AMP host. Keep container/Docker off so AMP runs `authserver`, `worldserver`, and `dbimport` as native processes. Do not make Docker a requirement for the panel server.
+
+1. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `Milzstream/azeroth-solo:main` next to `CubeCoders/AMPTemplates:main`. **Fetch Latest**.
+2. Create an instance from **Solo Azeroth Auth** and one from **Solo Azeroth World**. Leave container/Docker off (`DockerRequired=False` in the templates; do not switch the instances into AMP-managed container mode for this local setup).
+3. Update each instance so AMP downloads `solo-azeroth-linux-x86_64.tar.gz` from this repo's GitHub Releases and unpacks it into `serverfiles/`. That asset is published by `release-linux` on `main` (see [Release assets](#release-assets)). If no Release is published yet, AMP Update has only workflow artifacts to fall back on and the panel install will not complete.
+4. On the world instance only, copy your own extracted `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` into `serverfiles/data/` with the File Manager or a disk copy. AMP does not run the extractors and the release does not include client data.
+5. Install the MySQL client on the AMP host (`mysql` on `PATH`, or set **MySQL client** in the panel). The MySQL server stays external.
+6. Point the database settings at that MySQL server, then start **auth**, then **world**. Create a game account on the world console (`account create`, then `account set gmlevel`).
+
+AMP runs two instances because a Generic template has one executable:
 
 | Template file | Process |
 | --- | --- |
 | `solo-azeroth-auth.kvp` | `bin/authserver` |
 | `solo-azeroth-world.kvp` | `bin/worldserver` |
 
-Both download the same release asset via `solo-azerothupdates.json` (`GithubRelease` on `Milzstream/azeroth-solo`).
+Both download the same release asset via `solo-azerothupdates.json` (`GithubRelease` on `Milzstream/azeroth-solo`). The templates keep `ContainerPolicy=SupportedOnLinux` and `DockerRequired=False` and do not bind to a custom Docker image. AMP-managed Linux container mode remains optional elsewhere; this local checklist leaves it off. Settings stay on AMP's normal Settings page; config changes are written to the KVP files and take effect on restart.
 
-1. Merge the promotion PR into `main`. `release-linux` runs automatically on that push and publishes the AMP tarball plus the Windows Docker support ZIP. Use **workflow_dispatch** on `main` only to retry a failed release.
-2. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `Milzstream/azeroth-solo:main` next to `CubeCoders/AMPTemplates:main`. **Fetch Latest**.
-3. Create an instance from **Solo Azeroth Auth** and one from **Solo Azeroth World**. On Linux, AMP may run either instance natively or in AMP-managed container mode. The templates set `ContainerPolicy=SupportedOnLinux`, keep `DockerRequired=False`, and do not bind to a custom Docker image. AMP's normal Settings page remains enabled in either mode; config changes are written to the KVP files and take effect on restart.
-4. Update each instance so AMP unpacks the release into `serverfiles/`.
-5. On the world instance only, copy your extracted `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` into `serverfiles/data/` with the File Manager or a disk copy. The template will not do this.
-6. For native instances, install the MySQL client on the AMP host (`mysql` on `PATH`, or set **MySQL client** in the panel). AMP's built-in Linux container installs its runtime libraries and `default-mysql-client` from the template package list. The MySQL server remains external. In container mode, set each database connection to an address reachable from that container; `127.0.0.1` refers to the container itself, not the AMP host.
 7. The release sets `SourceDirectory` to `sql/core`. That tree is the core `data/sql` plus module data for Playerbots, Individual Progression, Ollama Chat, and AH Bot, so AMP's normal DB updater can apply the SQL without the GitHub runner path. `Updates.EnableDatabases` stays at the dist values (world **7**, auth **1**). `Updates.AutoSetup` stays **1**.
 8. The upstream `data/sql/create/create_mysql.sql` (shipped at `sql/core/data/sql/create/create_mysql.sql`) creates MySQL user `acore` with password `acore`, and databases `acore_auth`, `acore_world`, and `acore_characters`. **Change that password** before you rely on it. It does not create `acore_playerbots`; the playerbots updater creates that database when `Playerbots.Updates.EnableDatabases` is 1.
-9. Start **auth**, then **world**. The world console command to stop is `server exit` (pinned `cs_server.cpp`, `Console::Yes`). Auth is stopped by the process signal (`ExitMethod=OS_CLOSE`). Auth's ready line in the template is `Started auth database connection pool.` from `authserver/Main.cpp`. That line is before the network loop; there is no separate "listening" line in that file. World's ready line is `(worldserver-daemon) ready...`.
-10. Create a game account on the world console the same way as Docker (`account create`, then `account set gmlevel`).
+9. The world console command to stop is `server exit` (pinned `cs_server.cpp`, `Console::Yes`). Auth is stopped by the process signal (`ExitMethod=OS_CLOSE`). Auth's ready line in the template is `Started auth database connection pool.` from `authserver/Main.cpp`. That line is before the network loop; there is no separate "listening" line in that file. World's ready line is `(worldserver-daemon) ready...`.
 
 #### Configure AH Bot
 
