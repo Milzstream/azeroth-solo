@@ -147,7 +147,8 @@ jobs:
 
           rm -rf "$stage/data" "$stage/sql/core/env" "$stage"/maps "$stage"/vmaps "$stage"/mmaps "$stage"/dbc "$stage"/Cameras
           tar -C "$stage" -czf "$RUNNER_TEMP/solo-azeroth-linux-x86_64.tar.gz" .
-          tar -tzf "$RUNNER_TEMP/solo-azeroth-linux-x86_64.tar.gz" | head -40
+          tar -tzf "$RUNNER_TEMP/solo-azeroth-linux-x86_64.tar.gz" > "$RUNNER_TEMP/amp-linux-listing.txt"
+          head -40 "$RUNNER_TEMP/amp-linux-listing.txt"
 
       - name: Upload AMP Linux package
         uses: actions/upload-artifact@v4
@@ -191,7 +192,8 @@ jobs:
           cp modules/mod-ah-bot/conf/mod_ahbot.conf.dist "$support/modules/mod-ah-bot/conf/"
           cp "$RUNNER_TEMP"/windows-tools/* "$support/env/dist/bin/"
           (cd "$support" && zip -qr "$RUNNER_TEMP/solo-azeroth-docker-windows-x86_64.zip" .)
-          unzip -l "$RUNNER_TEMP/solo-azeroth-docker-windows-x86_64.zip" | head -40
+          unzip -l "$RUNNER_TEMP/solo-azeroth-docker-windows-x86_64.zip" > "$RUNNER_TEMP/docker-windows-listing.txt"
+          head -40 "$RUNNER_TEMP/docker-windows-listing.txt"
 
       - name: Publish GitHub Release
         env:
