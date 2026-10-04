@@ -75,7 +75,8 @@ jobs:
             -DCMAKE_CXX_COMPILER=g++ \
             -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/ac-install" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-keep-memory" \
-            -DCONF_DIR=etc
+            -DCONF_DIR=etc \
+            -DTOOLS_BUILD=db-only
           # --parallel with no number uses every core and OOM-kills cc1plus.
           # Two jobs is the mitigation; swap above is only extra.
           jobs="$(nproc)"
@@ -110,7 +111,7 @@ jobs:
             cp -f "$conf" "${conf%.dist}"
           done
 
-          for conf in "$stage"/etc/authserver.conf "$stage"/etc/worldserver.conf; do
+          for conf in "$stage"/etc/authserver.conf "$stage"/etc/worldserver.conf "$stage"/etc/dbimport.conf; do
             sed -i \
               -e 's|^SourceDirectory *=.*|SourceDirectory = "sql/core"|' \
               -e 's|^MySQLExecutable *=.*|MySQLExecutable = "mysql"|' \
