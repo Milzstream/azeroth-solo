@@ -1,5 +1,5 @@
-# Build the AMP Linux runtime and a Windows Docker support bundle.
-# Manual only; Docker images are published separately by docker-release.yml.
+# Build the AMP Linux runtime and a Windows Docker support bundle from main.
+# Docker images are published separately by docker-release.yml.
 name: release-linux
 
 on:
