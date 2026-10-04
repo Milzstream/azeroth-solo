@@ -1,5 +1,5 @@
-Meta.DisplayName=Solo Azeroth Auth
-Meta.Description=AzerothCore 3.3.5a authserver for Solo Azeroth. Pair with the world template. AMP-managed Linux containerization is optional. The database is the AMP MySQL instance on this same host, not a separate host.
+Meta.DisplayName=Azeroth-Solo-Auth
+Meta.Description=Create the instance named MySQL from the CubeCoders list (CubeCoders/AMPTemplates) first. That is the database. This repo does not ship a database template. The database row stays DisplayName MySQL. All three are required: that MySQL instance, Azeroth-Solo-Auth, and Azeroth-Solo-World. Leave Docker and container mode off on all three. Start MySQL, then auth, then world. More than one world is ok. One auth. The world needs your own extracted dbc, maps, vmaps, mmaps, and Cameras copied into serverfiles/data/. AMP does not run extractors. No WoW client data is in the release. Forward the auth realm port TCP 3724 and the world port TCP 8085. The database port stays local (127.0.0.1, TCP 3306) and must not be forwarded.
 Meta.OS=Linux
 Meta.AarchSupport=Unknown
 Meta.Arch=x86_64
@@ -23,7 +23,7 @@ Meta.ReleaseNotes=
 Meta.BreakingReleaseNotes=
 Meta.AppConfigId=a98f0354-8861-4487-971d-1f5de1d1e7c8
 Meta.AppIsMultiIPAware=False
-App.DisplayName=Solo Azeroth Auth
+App.DisplayName=Azeroth-Solo-Auth
 App.RootDir=./solo-azeroth/
 App.BaseDirectory=./solo-azeroth/serverfiles/
 App.SteamWorkshopDownloadLocation=
