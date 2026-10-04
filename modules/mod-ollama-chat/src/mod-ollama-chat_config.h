@@ -204,6 +204,7 @@ extern uint32_t g_OpenerHistorySize;
 
 // Intent layer: grouped bots act on what their master asks for.
 extern bool     g_IntentEnable;
+extern bool     g_IntentPrefilter;
 extern uint32_t g_IntentCooldownSeconds;
 
 // --------------------------------------------

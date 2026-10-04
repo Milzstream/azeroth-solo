@@ -125,6 +125,7 @@ uint32_t g_RepetitionWindowSeconds       = 1800;
 uint32_t g_OpenerHistorySize             = 8;
 
 bool     g_IntentEnable                  = false;
+bool     g_IntentPrefilter               = true;
 uint32_t g_IntentCooldownSeconds         = 10;
 
 // --------------------------------------------
@@ -723,6 +724,7 @@ void LoadOllamaChatConfig()
 
     // --- Intent layer ----------------------------------------------------
     g_IntentEnable                    = sConfigMgr->GetOption<bool>("OllamaChat.Intent.Enable", false);
+    g_IntentPrefilter                 = sConfigMgr->GetOption<bool>("OllamaChat.Intent.Prefilter", true);
     g_IntentCooldownSeconds           = sConfigMgr->GetOption<uint32_t>("OllamaChat.Intent.CooldownSeconds", 10);
 
     // --- Topic engine ----------------------------------------------------

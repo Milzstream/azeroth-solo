@@ -37,7 +37,8 @@ Plans live in `Intent_GetPlan` in `src/mod-ollama-chat_intent_core.cpp`.
 
 ## Settings
 
-`OllamaChat.Intent.Enable` (default 0) and `OllamaChat.Intent.CooldownSeconds` (default 10).
+`OllamaChat.Intent.Enable` (default 0), `OllamaChat.Intent.Prefilter` (default 1; 0 classifies every line
+from the master) and `OllamaChat.Intent.CooldownSeconds` (default 10).
 
 ## Limits and open questions
 
@@ -50,7 +51,11 @@ Plans live in `Intent_GetPlan` in `src/mod-ollama-chat_intent_core.cpp`.
   `grind`, `quest`) never reach this layer; playerbots handles those natively.
 - Bots do not yet loot quest items on request. That is the next candidate intent.
 
-## Related playerbots change
+## Related playerbots changes
+
+A grouped bot now uses the `all` loot strategy while it has a real player as master, and goes back to
+`normal` when it leaves the group (`UpdateAIGroupMaster` in `PlayerbotAI.cpp`). Quest items drop per
+player, so this cannot take the master's.
 
 `PlayerbotAI::TellMasterNoFacing` now sends a grouped bot's progress messages (for example
 "Kobold Worker 4/10") as party chat instead of a whisper. It applies only when the master is a real

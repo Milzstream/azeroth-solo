@@ -25,7 +25,7 @@ void OllamaIntent_MaybeSubmit(Player* bot, Player* speaker, std::string const& m
     if (!g_IntentEnable || !bot || !speaker)
         return;
 
-    if (!OllamaIsRealPlayer(speaker) || !Intent_LooksActionable(message))
+    if (!OllamaIsRealPlayer(speaker) || (g_IntentPrefilter && !Intent_LooksActionable(message)))
         return;
 
     PlayerbotAI* botAI = PlayerbotsMgr::instance().GetPlayerbotAI(bot);

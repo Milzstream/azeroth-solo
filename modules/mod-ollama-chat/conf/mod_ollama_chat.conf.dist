@@ -1228,6 +1228,14 @@ OllamaChat.Repetition.OpenerHistorySize = 8
 #        Default: 0
 OllamaChat.Intent.Enable = 0
 
+#    OllamaChat.Intent.Prefilter
+#        Only classify lines containing a request-like keyword (quest, together,
+#        wait, ...). Saves LLM calls. Set to 0 to classify every line from the
+#        master, so natural phrasing without a keyword still works; sensible
+#        with a local model, where calls cost nothing.
+#        Default: 1
+OllamaChat.Intent.Prefilter = 1
+
 #    OllamaChat.Intent.CooldownSeconds
 #        Minimum gap between two classifications for the same bot.
 #        Default: 10
