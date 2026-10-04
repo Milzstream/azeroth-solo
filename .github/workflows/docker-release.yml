@@ -46,12 +46,27 @@ jobs:
       - name: Add swap for the image compile
         run: |
           set -euo pipefail
-          # Same OOM as release-linux: the image compile runs on this runner.
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+          # The OOM mitigation is the job cap of 2. Swap is extra.
+          # GitHub-hosted ubuntu-22.04 already has /swapfile active;
+          # fallocate on that path returns ETXTBSY ("Text file busy") and
+          # must not fail the job.
+          echo "Existing swap:"
+          swapon --show || true
+          free -h || true
+          if [ -n "$(swapon --show || true)" ]; then
+            echo "Swap is already enabled; keeping it."
+          else
+            echo "No swap active; trying /swapfile-ci via dd."
+            if ! sudo dd if=/dev/zero of=/swapfile-ci bs=1M count=8192 status=progress; then
+              echo "::warning::Could not create /swapfile-ci (likely disk space). Continuing without extra swap."
+              sudo rm -f /swapfile-ci || true
+            elif ! sudo chmod 600 /swapfile-ci || ! sudo mkswap /swapfile-ci || ! sudo swapon /swapfile-ci; then
+              echo "::warning::Could not enable /swapfile-ci. Continuing without extra swap."
+              sudo swapoff /swapfile-ci || true
+              sudo rm -f /swapfile-ci || true
+            fi
+          fi
+          free -h || true
 
       - name: Build server image
         uses: docker/build-push-action@v6

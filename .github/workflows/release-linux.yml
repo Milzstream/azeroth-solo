@@ -44,15 +44,27 @@ jobs:
       - name: Add swap for the Release compile
         run: |
           set -euo pipefail
-          # ubuntu-22.04 runners have no swap. A Release build of playerbots
-          # and the vendored modules OOM-kills cc1plus (exit 143) at full
-          # --parallel. 8G of swap covers the fat translation units and the
-          # final link without changing the binaries.
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+          # The OOM mitigation is the job cap of 2. Swap is extra.
+          # GitHub-hosted ubuntu-22.04 already has /swapfile active;
+          # fallocate on that path returns ETXTBSY ("Text file busy") and
+          # must not fail the job.
+          echo "Existing swap:"
+          swapon --show || true
+          free -h || true
+          if [ -n "$(swapon --show || true)" ]; then
+            echo "Swap is already enabled; keeping it."
+          else
+            echo "No swap active; trying /swapfile-ci via dd."
+            if ! sudo dd if=/dev/zero of=/swapfile-ci bs=1M count=8192 status=progress; then
+              echo "::warning::Could not create /swapfile-ci (likely disk space). Continuing without extra swap."
+              sudo rm -f /swapfile-ci || true
+            elif ! sudo chmod 600 /swapfile-ci || ! sudo mkswap /swapfile-ci || ! sudo swapon /swapfile-ci; then
+              echo "::warning::Could not enable /swapfile-ci. Continuing without extra swap."
+              sudo swapoff /swapfile-ci || true
+              sudo rm -f /swapfile-ci || true
+            fi
+          fi
+          free -h || true
 
       - name: Configure and build
         run: |
@@ -64,8 +76,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/ac-install" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-keep-memory" \
             -DCONF_DIR=etc
-          # --parallel with no number uses every core. Two Release g++ jobs
-          # is what fits once swap is available; more reintroduces the kill.
+          # --parallel with no number uses every core and OOM-kills cc1plus.
+          # Two jobs is the mitigation; swap above is only extra.
           jobs="$(nproc)"
           if [ "$jobs" -gt 2 ]; then
             jobs=2
