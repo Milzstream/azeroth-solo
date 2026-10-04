@@ -48,7 +48,7 @@ The imported core and `mod-playerbots` stay **GPL-2.0**. `mod-individual-progres
 
 - Docker (Compose v2) for the local test path, or AMP plus a Linux host for the panel path.
 - Your own **Wrath 3.3.5a** client (build 12340). This repo does not download a client, MPQs, maps, vmaps, mmaps, dbc, or Cameras.
-- A MySQL server AMP can reach, if you are not using the Docker database.
+- For local AMP, the MySQL instance whose display name is **MySQL** (from `CubeCoders/AMPTemplates`), on this same AMP host. Not a MySQL server installed on the host, and not an outside database. The Docker Compose test path still uses its own database container.
 
 ## Server sizing
 
@@ -269,14 +269,36 @@ The worldserver image sets `AC_UPDATES_ENABLE_DATABASES=0` and runs core SQL in 
 
 ### Local AMP setup (native)
 
-Use this path on your AMP host. Keep container/Docker off so AMP runs `authserver`, `worldserver`, and `dbimport` as native processes. Do not make Docker a requirement for the panel server.
+Use this path on your AMP host. Keep container/Docker off so AMP runs `authserver`, `worldserver`, and `dbimport` as native processes. Do not make Docker a requirement for the panel server. The Datastores tab is not the game database.
 
-1. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `Milzstream/azeroth-solo:main` next to `CubeCoders/AMPTemplates:main`. **Fetch Latest**.
-2. Create an instance from **Solo Azeroth Auth** and one from **Solo Azeroth World**. Leave container/Docker off (`DockerRequired=False` in the templates; do not switch the instances into AMP-managed container mode for this local setup).
-3. Update each instance so AMP downloads `solo-azeroth-linux-x86_64.tar.gz` from this repo's GitHub Releases and unpacks it into `serverfiles/`. That asset is published by `release-linux` on `main` (see [Release assets](#release-assets)). If no Release is published yet, AMP Update has only workflow artifacts to fall back on and the panel install will not complete.
-4. On the world instance only, copy your own extracted `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` into `serverfiles/data/` with the File Manager or a disk copy. AMP does not run the extractors and the release does not include client data.
-5. Install the MySQL client on the AMP host (`mysql` on `PATH`, or set **MySQL client** in the panel). The MySQL server stays external.
-6. Point the database settings at that MySQL server, then start **auth**, then **world**. Create a game account on the world console (`account create`, then `account set gmlevel`).
+1. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `CubeCoders/AMPTemplates:main` and `Milzstream/azeroth-solo:main`. **Fetch Latest**. Fetch Latest loads the auth and world kvp/json from `Milzstream/azeroth-solo:main`. The MySQL template is loaded from `CubeCoders/AMPTemplates:main`, which stays next to this repo.
+2. Create the instance whose display name is **MySQL**. Leave container/Docker off. If AMP refuses to start it, the missing pieces are the three libraries named in that template (`libaio1`, `libncurses6`, `libnuma1`), not a MySQL server package and not Docker. Start it before auth and world. The default listen port is TCP 3306.
+3. In that instance console, paste the statements from `data/sql/create/create_mysql.sql` (also shipped at `sql/core/data/sql/create/create_mysql.sql`). The console is the mysql client as user `amp` over the socket. Change the `acore` password in the `CREATE USER` line before you rely on it, and put that same password in the auth and world database settings.
+
+```sql
+DROP USER IF EXISTS 'acore'@'localhost';
+CREATE USER 'acore'@'localhost' IDENTIFIED BY 'acore' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0;
+
+-- Create databases for AzerothCore, only if they do not exist
+CREATE DATABASE IF NOT EXISTS `acore_world` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;
+
+CREATE DATABASE IF NOT EXISTS `acore_characters` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;
+
+CREATE DATABASE IF NOT EXISTS `acore_auth` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;
+
+GRANT ALL PRIVILEGES ON `acore_world` . * TO 'acore'@'localhost' WITH GRANT OPTION;
+
+GRANT ALL PRIVILEGES ON `acore_characters` . * TO 'acore'@'localhost' WITH GRANT OPTION;
+
+GRANT ALL PRIVILEGES ON `acore_auth` . * TO 'acore'@'localhost' WITH GRANT OPTION;
+```
+
+That file creates MySQL user `acore` at host `localhost` only, and databases `acore_auth`, `acore_world`, and `acore_characters`. It does not create `acore_playerbots`. Auth and world connect over TCP to `127.0.0.1:3306`. MySQL matches a TCP connection to `127.0.0.1` to the `localhost` account unless the server is started with `skip_name_resolve` ([MySQL 8.4 `--skip-name-resolve`](https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html#sysvar_skip_name_resolve)). The CubeCoders MySQL startup does not pass `--skip-name-resolve`, so the grant in the file is the account those TCP logins use. This README does not add an `'acore'@'127.0.0.1'` user. The playerbots updater creates `acore_playerbots` when `Playerbots.Updates.EnableDatabases` is 1. `data/sql/create/create_mysql.sql` does not grant global `CREATE`; the updater's own failure text says that login needs `CREATE`, `ALTER`, `DROP`, `INSERT`, and `DELETE`. No extra grant is added here.
+
+4. Create **Solo Azeroth Auth** and **Solo Azeroth World**. Leave container/Docker off (`DockerRequired=False` in the templates; do not switch the instances into AMP-managed container mode for this local setup).
+5. Update each instance so AMP downloads `solo-azeroth-linux-x86_64.tar.gz` from this repo's GitHub Releases and unpacks it into `serverfiles/`. That asset is the published release (see [Release assets](#release-assets)). Template edits do not publish a new tarball. If no Release is published yet, AMP Update has nothing to unpack.
+6. On the world instance only, copy your own extracted `dbc`, `maps`, `vmaps`, `mmaps`, and `Cameras` into `serverfiles/data/` with the File Manager or a disk copy. AMP does not run the extractors and the release does not include client data.
+7. Leave the database settings on `127.0.0.1` and the AMP MySQL port (3306 unless you changed that instance's listen port). Do not point them at another machine. Start **auth**, then **world**. Create a game account on the world console (`account create`, then `account set gmlevel`).
 
 AMP runs two instances because a Generic template has one executable:
 
@@ -287,9 +309,9 @@ AMP runs two instances because a Generic template has one executable:
 
 Both download the same release asset via `solo-azerothupdates.json` (`GithubRelease` on `Milzstream/azeroth-solo`). The templates keep `ContainerPolicy=SupportedOnLinux` and `DockerRequired=False` and do not bind to a custom Docker image. AMP-managed Linux container mode remains optional elsewhere; this local checklist leaves it off. Settings stay on AMP's normal Settings page; config changes are written to the KVP files and take effect on restart.
 
-7. The release sets `SourceDirectory` to `sql/core`. That tree is the core `data/sql` plus module data for Playerbots, Individual Progression, Ollama Chat, and AH Bot, so AMP's normal DB updater can apply the SQL without the GitHub runner path. `Updates.EnableDatabases` stays at the dist values (world **7**, auth **1**). `Updates.AutoSetup` stays **1**.
-8. The upstream `data/sql/create/create_mysql.sql` (shipped at `sql/core/data/sql/create/create_mysql.sql`) creates MySQL user `acore` with password `acore`, and databases `acore_auth`, `acore_world`, and `acore_characters`. **Change that password** before you rely on it. It does not create `acore_playerbots`; the playerbots updater creates that database when `Playerbots.Updates.EnableDatabases` is 1.
-9. The world console command to stop is `server exit` (pinned `cs_server.cpp`, `Console::Yes`). Auth is stopped by the process signal (`ExitMethod=OS_CLOSE`). Auth's ready line in the template is `Started auth database connection pool.` from `authserver/Main.cpp`. That line is before the network loop; there is no separate "listening" line in that file. World's ready line is `(worldserver-daemon) ready...`.
+The release sets `SourceDirectory` to `sql/core`. That tree is the core `data/sql` plus module data for Playerbots, Individual Progression, Ollama Chat, and AH Bot, so AMP's normal DB updater can apply the SQL without the GitHub runner path. `Updates.EnableDatabases` stays at the dist values (world **7**, auth **1**). `Updates.AutoSetup` stays **1**.
+
+The world console command to stop is `server exit` (pinned `cs_server.cpp`, `Console::Yes`). Auth is stopped by the process signal (`ExitMethod=OS_CLOSE`). Auth's ready line in the template is `Started auth database connection pool.` from `authserver/Main.cpp`. That line is before the network loop; there is no separate "listening" line in that file. World's ready line is `(worldserver-daemon) ready...`.
 
 #### Configure AH Bot
 
@@ -313,7 +335,7 @@ The panel edits conf keys through `solo-azeroth-worldconfig.json` and `solo-azer
 All of these are keys in the pinned `worldserver.conf.dist` or `playerbots.conf.dist`. `IncludeInCommandLine` is false; they are written into the conf files.
 
 - `WorldServerPort` (default 8085, TCP), `BindIP`, `DataDir` (default `data`), `RealmID` (default 1), `PlayerLimit` (default 1000)
-- `LoginDatabaseInfo`, `WorldDatabaseInfo`, `CharacterDatabaseInfo`, `PlayerbotsDatabaseInfo` (dist strings use user `acore` / password `acore`; change them)
+- `LoginDatabaseInfo`, `WorldDatabaseInfo`, `CharacterDatabaseInfo`, `PlayerbotsDatabaseInfo` (dist strings stay on `127.0.0.1` port `3306`, user `acore` / password `acore`; change the password to match the AMP MySQL instance, and do not point them at another machine)
 - `SourceDirectory` (default `sql/core`), `MySQLExecutable` (default `mysql`), `Updates.EnableDatabases` (default 7), `MapUpdate.Threads` (default 4 here; dist file says 1)
 - `AiPlayerbot.Enabled` (1), `AiPlayerbot.RandomBotAutologin` (1), `AiPlayerbot.MinRandomBots` (50), `AiPlayerbot.MaxRandomBots` (150), `AiPlayerbot.RandomBotMaps` (`0,1,530,571`), `AiPlayerbot.AutoDoQuests` (1), `AiPlayerbot.ApplyInstanceStrategies` (0), `Playerbots.Updates.EnableDatabases` (1)
 - `Rate.XP.Kill`, `Rate.XP.Quest`, `Rate.XP.Explore`, `Rate.Honor`, `Rate.Drop.Money` (all default 1)
@@ -343,7 +365,7 @@ Item drop rates other than `Rate.Drop.Money` exist (`Rate.Drop.Item.Poor` and th
 
 `solo-azeroth-docker-windows-x86_64.zip` is a small Docker support bundle for Windows. It contains the Compose manifests, `.env.example`, `BuildAndStart.ps1`, `Stop.ps1`, the realm-name SQL, and the Windows extractor executables/DLLs. It does not contain client files or require a full source checkout.
 
-Built on `ubuntu-22.04` with the same compiler packages as the fork's `core-build-playerbots.yml`, plus `-DCMAKE_INSTALL_PREFIX` and `-DCONF_DIR=etc`. Native AMP hosts need the MySQL client library, OpenSSL, readline, and `mysql` client. AMP-managed Linux containers install the runtime packages from `Meta.ExtraContainerPackages`.
+Built on `ubuntu-22.04` with the same compiler packages as the fork's `core-build-playerbots.yml`, plus `-DCMAKE_INSTALL_PREFIX` and `-DCONF_DIR=etc`. Native AMP hosts need the libraries the binaries link (MySQL client library, OpenSSL, readline). Database updates call the `mysql` client named by **MySQL client** (default `mysql`) against the AMP MySQL instance on this host. That is not a MySQL server package. AMP-managed Linux containers install the runtime packages from `Meta.ExtraContainerPackages`.
 
 ## Contributing
 

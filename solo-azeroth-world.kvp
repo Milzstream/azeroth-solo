@@ -1,5 +1,5 @@
 Meta.DisplayName=Solo Azeroth World
-Meta.Description=AzerothCore 3.3.5a worldserver with playerbots, AH Bot, and optional AMP-managed Linux containerization. Settings remain available in AMP.
+Meta.Description=AzerothCore 3.3.5a worldserver with playerbots, AH Bot, and optional AMP-managed Linux containerization. Settings remain available in AMP. The database is the AMP MySQL instance on this same host, not a separate host.
 Meta.OS=Linux
 Meta.AarchSupport=Unknown
 Meta.Arch=x86_64
