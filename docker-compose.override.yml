@@ -19,6 +19,9 @@ services:
       # Gather bots in level-appropriate zones that hold a real player, and rotate which bots are online.
       AC_AI_PLAYERBOT_RANDOM_BOT_CONCENTRATE_IN_PLAYER_ZONE: "1"
       AC_AI_PLAYERBOT_ENABLE_PERIODIC_ONLINE_OFFLINE: "1"
+      # Bot levels follow the highest player level; applies to bots created or re-randomised after this.
+      AC_AI_PLAYERBOT_SYNC_LEVEL_WITH_PLAYERS: "1"
+      AC_AI_PLAYERBOT_ENABLE_GREET: "0"
       AC_AI_PLAYERBOT_AUTO_DO_QUESTS: "1"
       # worldserver.conf.dist default is 1. The playerbots install guide recommends 4-6.
       AC_MAP_UPDATE_THREADS: "4"

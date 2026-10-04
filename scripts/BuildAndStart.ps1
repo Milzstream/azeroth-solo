@@ -1,5 +1,5 @@
 # Local Docker test on Windows, after the extractor tools are on disk.
-# Default path pulls the published GHCR image; -BuildImages builds this checkout.
+# Builds the images from this checkout by default; -UsePublishedImage pulls the GHCR image instead.
 # Bundled extractor tools are preferred; otherwise the script can download the Actions artifact.
 # -LocalBuild runs ./acore.sh compiler build with CAPPS_BUILD=none and
 # CTOOLS_BUILD=maps-only (apps/ci/ci-conf-tools.sh). PCH stays at the default.
@@ -7,8 +7,10 @@
 #Requires -Version 5.1
 param(
     [switch]$LocalBuild,
-    [switch]$BuildImages
+    [switch]$UsePublishedImage,
+    [switch]$BuildImages  # kept so older command lines still work; building is already the default
 )
+$BuildImages = -not $UsePublishedImage
 $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     $PSNativeCommandUseErrorActionPreference = $false
