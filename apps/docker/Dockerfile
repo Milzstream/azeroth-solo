@@ -187,6 +187,13 @@ COPY --chown=$DOCKER_USER:$DOCKER_USER \
      --from=build \
      /azerothcore/env/dist/bin/worldserver /azerothcore/env/dist/bin/worldserver
 
+# The worldserver updater scans compiled modules for module-owned SQL updates.
+# Ship only module data in the runtime image; module source is already compiled in.
+COPY --chown=$DOCKER_USER:$DOCKER_USER --from=build /azerothcore/modules/mod-playerbots/data /azerothcore/modules/mod-playerbots/data
+COPY --chown=$DOCKER_USER:$DOCKER_USER --from=build /azerothcore/modules/mod-individual-progression/data /azerothcore/modules/mod-individual-progression/data
+COPY --chown=$DOCKER_USER:$DOCKER_USER --from=build /azerothcore/modules/mod-ollama-chat/data /azerothcore/modules/mod-ollama-chat/data
+COPY --chown=$DOCKER_USER:$DOCKER_USER --from=build /azerothcore/modules/mod-ah-bot/data /azerothcore/modules/mod-ah-bot/data
+
 VOLUME /azerothcore/env/dist/etc
 
 CMD ["worldserver"]
@@ -214,6 +221,26 @@ COPY --chown=$DOCKER_USER:$DOCKER_USER\
      /azerothcore/env/dist/bin/dbimport /azerothcore/env/dist/bin/dbimport
 
 CMD [ "/azerothcore/env/dist/bin/dbimport" ]
+
+###############################
+# Combined server image      #
+###############################
+
+FROM db-import AS server
+
+LABEL description="AzerothCore Auth, World, and DB Import Server"
+
+ENV ACORE_COMPONENT=undefined
+
+COPY --chown=$DOCKER_USER:$DOCKER_USER \
+  --from=build \
+  /azerothcore/env/dist/bin/authserver /azerothcore/env/dist/bin/authserver
+
+COPY --chown=$DOCKER_USER:$DOCKER_USER \
+  --from=build \
+  /azerothcore/env/dist/bin/worldserver /azerothcore/env/dist/bin/worldserver
+
+CMD ["worldserver"]
 
 ###############
 # Client Data #
