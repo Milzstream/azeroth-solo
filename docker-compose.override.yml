@@ -22,15 +22,21 @@ services:
       # stage PROGRESSION_START (Classic, level cap 60, Molten Core and Onyxia), not Wrath.
       AC_INDIVIDUAL_PROGRESSION_ENABLE: "1"
       AC_INDIVIDUAL_PROGRESSION_STARTING_PROGRESSION: "0"
-      # mod_ollama_chat.conf.dist. On, but OllamaChat.Url is not overridden.
-      # Dist default http://localhost:11434/api/generate is the container, not the host.
-      # Chat does nothing useful until AC_OLLAMA_CHAT_URL points at a running Ollama
-      # /api/generate endpoint. A missing Ollama does not stop worldserver from booting.
+      # Ollama runs as a sibling container; localhost would point back to worldserver.
       AC_OLLAMA_CHAT_ENABLE: "1"
+      AC_OLLAMA_CHAT_URL: "http://ollama:11434/api/generate"
+      AC_AUCTION_HOUSE_BOT_ENABLE_SELLER: "${DOCKER_AHBOT_ENABLE_SELLER:-0}"
+      AC_AUCTION_HOUSE_BOT_ENABLE_BUYER: "${DOCKER_AHBOT_ENABLE_BUYER:-0}"
+      AC_AUCTION_HOUSE_BOT_ACCOUNT: "${DOCKER_AHBOT_ACCOUNT:-0}"
+      AC_AUCTION_HOUSE_BOT_GUID: "${DOCKER_AHBOT_GUID:-0}"
     volumes:
       # worldserver applies playerbots SQL from the compiled source dir /azerothcore/modules.
       # The runtime image does not contain the module tree; the mount supplies it.
       - ./modules:/azerothcore/modules:ro
+      - ./modules/mod-ah-bot/conf/mod_ahbot.conf.dist:/azerothcore/env/dist/etc/modules/mod_ahbot.conf:ro
+    depends_on:
+      ac-ollama-model-init:
+        condition: service_completed_successfully
 
   ac-client-data-init:
     # The upstream image command downloads client data (inst_download_client_data).
@@ -55,3 +61,35 @@ services:
           exit 1
         fi
         echo "Using locally extracted client data."
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ac-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ac-ollama-model-init:
+    image: ollama/ollama:latest
+    entrypoint: ["ollama"]
+    command: ["pull", "llama3.2:1b"]
+    environment:
+      OLLAMA_HOST: "ollama:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ac-network
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  ollama-models:

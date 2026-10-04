@@ -6,6 +6,10 @@
 /conf/*
 !/conf/dist
 /modules/*
+!/modules/mod-ah-bot/
+!/modules/mod-ah-bot/**
+!/modules/mod-dungeon-clear/
+!/modules/mod-dungeon-clear/**
 !/modules/*.md
 !/modules/*.sh
 !/modules/CMakeLists.txt

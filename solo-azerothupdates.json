@@ -13,19 +13,6 @@
         "SkipOnFailure": false
     },
     {
-        "UpdateStageName": "Solo Azeroth Windows download",
-        "UpdateSourcePlatform": "Windows",
-        "UpdateSourceArch": "x86_64",
-        "UpdateSource": "GithubRelease",
-        "UpdateSourceData": "solo-azeroth-windows-x86_64.zip",
-        "UpdateSourceArgs": "Milzstream/azeroth-solo",
-        "UpdateSourceTarget": "{{$FullBaseDir}}",
-        "UnzipUpdateSource": true,
-        "OverwriteExistingFiles": true,
-        "DeleteAfterExtract": true,
-        "SkipOnFailure": false
-    },
-    {
         "UpdateStageName": "Set executable flag authserver",
         "UpdateSourcePlatform": "Linux",
         "UpdateSourceArch": "x86_64",

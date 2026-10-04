@@ -1,5 +1,5 @@
-# Builds a native Linux x86_64 authserver + worldserver from the source already
-# in this repository (playerbots plus the two vendored modules) and publishes
+# Builds Linux x86_64 authserver + worldserver for native or AMP-managed
+# container deployment from the source already in this repository and publishes
 # solo-azeroth-linux-x86_64.tar.gz on a GitHub Release.
 # Does not clone those modules.
 # Manual only. A full AzerothCore compile is large; this workflow is not run
@@ -32,10 +32,14 @@ jobs:
           echo "pb_sha=$PLAYERBOTS_SHA" >> "$GITHUB_OUTPUT"
           echo "ip_sha=$INDIVIDUAL_PROGRESSION_SHA" >> "$GITHUB_OUTPUT"
           echo "oc_sha=$OLLAMA_CHAT_SHA" >> "$GITHUB_OUTPUT"
+          echo "dc_sha=$DUNGEON_CLEAR_SHA" >> "$GITHUB_OUTPUT"
+          echo "ah_sha=$AH_BOT_SHA" >> "$GITHUB_OUTPUT"
           test -f CMakeLists.txt
           test -d modules/mod-playerbots/src
           test -d modules/mod-individual-progression/src
           test -d modules/mod-ollama-chat/src
+          test -d modules/mod-dungeon-clear/src
+          test -d modules/mod-ah-bot/src
 
       - name: Install build packages
         run: |
@@ -103,8 +107,12 @@ jobs:
             -e 's|^IndividualProgression.StartingProgression *=.*|IndividualProgression.StartingProgression = 0|' \
             "$stage/etc/modules/individualProgression.conf"
           sed -i \
-            -e 's|^OllamaChat.Enable *=.*|OllamaChat.Enable = 1|' \
+            -e 's|^OllamaChat.Enable *=.*|OllamaChat.Enable = 0|' \
             "$stage/etc/modules/mod_ollama_chat.conf"
+          sed -i \
+            -e 's|^AuctionHouseBot.EnableSeller *=.*|AuctionHouseBot.EnableSeller = 0|' \
+            -e 's|^AuctionHouseBot.EnableBuyer *=.*|AuctionHouseBot.EnableBuyer = 0|' \
+            "$stage/etc/modules/mod_ahbot.conf"
 
           # Windows binaries look in configs/ (GetConfigPath). Ship the same files
           # so the metaconfig has somewhere to write if a Windows asset is added later.
@@ -118,6 +126,8 @@ jobs:
           mkdir -p "$stage/sql/core/modules/mod-individual-progression" "$stage/sql/core/modules/mod-ollama-chat"
           cp -a "$core/modules/mod-individual-progression/data" "$stage/sql/core/modules/mod-individual-progression/data"
           cp -a "$core/modules/mod-ollama-chat/data" "$stage/sql/core/modules/mod-ollama-chat/data"
+          mkdir -p "$stage/sql/core/modules/mod-ah-bot"
+          cp -a "$core/modules/mod-ah-bot/data" "$stage/sql/core/modules/mod-ah-bot/data"
 
           # Never pack client extracts even if a runner has some.
           rm -rf "$stage/data" "$stage/sql/core/env" "$stage"/maps "$stage"/vmaps "$stage"/mmaps "$stage"/dbc "$stage"/Cameras
@@ -134,7 +144,7 @@ jobs:
           gh release create "$tag" \
             --title "Linux x86_64 ${GITHUB_SHA::7}" \
             --notes "$(cat <<NOTES
-          Native Linux build of authserver, worldserver, and dbimport with mod-playerbots, mod-individual-progression, and mod-ollama-chat compiled in.
+          Linux build of authserver, worldserver, and dbimport with mod-playerbots, mod-individual-progression, mod-ollama-chat, mod-dungeon-clear, and mod-ah-bot compiled in. AMP may run the binaries natively or in its supported Linux container mode; settings stay in AMP's configuration manifests.
           Built on ubuntu-22.04 from the source in this repository (commit ${GITHUB_SHA}). Nothing here is cloned at build time.
           Asset: solo-azeroth-linux-x86_64.tar.gz
 
@@ -146,6 +156,8 @@ jobs:
           mod-playerbots: ${{ steps.pins.outputs.pb_sha }}
           mod-individual-progression: ${{ steps.pins.outputs.ip_sha }}
           mod-ollama-chat: ${{ steps.pins.outputs.oc_sha }}
+          mod-dungeon-clear: ${{ steps.pins.outputs.dc_sha }}
+          mod-ah-bot: ${{ steps.pins.outputs.ah_sha }}
           NOTES
           )" \
             solo-azeroth-linux-x86_64.tar.gz
