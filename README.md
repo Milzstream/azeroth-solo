@@ -276,7 +276,7 @@ AMP runs two instances because a Generic template has one executable. Create bot
 
 Both download the same release asset via `solo-azerothupdates.json` (`GithubRelease` on `Milzstream/azeroth-solo`).
 
-1. After the source changes are on `main` and the `docker-release` workflow has published the GHCR image, run **release-linux** (`workflow_dispatch`) in GitHub Actions. It publishes the AMP tarball and the Windows Docker support ZIP as GitHub Release assets.
+1. Merge the promotion PR into `main`. `release-linux` runs automatically on that push and publishes the AMP tarball plus the Windows Docker support ZIP. Use **workflow_dispatch** on `main` only to retry a failed release.
 2. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `Milzstream/azeroth-solo:main` next to `CubeCoders/AMPTemplates:main`. **Fetch Latest**.
 3. Create an instance from **Solo Azeroth Auth** and one from **Solo Azeroth World**. On Linux, AMP may run either instance natively or in AMP-managed container mode. The templates set `ContainerPolicy=SupportedOnLinux`, keep `DockerRequired=False`, and do not bind to a custom Docker image. AMP's normal Settings page remains enabled in either mode; config changes are written to the KVP files and take effect on restart.
 4. Update each instance so AMP unpacks the release into `serverfiles/`.

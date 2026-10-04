@@ -14,20 +14,6 @@ name: windows-extractor-tools
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/windows-extractor-tools.yml
-      - apps/ci/ci-conf-tools.sh
-      - apps/compiler/**
-      - conf/dist/config.sh
-      - conf/dist/config.cmake
-      - CMakeLists.txt
-      - deps/**
-      - src/common/**
-      - src/tools/**
-      - src/CMakeLists.txt
-      - src/cmake/**
 
 permissions:
   contents: read
