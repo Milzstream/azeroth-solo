@@ -143,7 +143,13 @@ docker compose \
   "$@"
 ```
 
-The base compose file is `docker-compose.yml` in this repo. It starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. The world image is built from this tree with `modules/mod-playerbots`, `modules/mod-individual-progression`, and `modules/mod-ollama-chat` in the build context, which is how `apps/docker/Dockerfile` compiles modules (`COPY modules`). The override also bind-mounts `./modules` onto `/azerothcore/modules` because playerbots applies its SQL from that source path, and the worldserver runtime stage does not copy the module tree.
+The base Compose file starts `ac-database` (MySQL 8.4), `ac-db-import`, `ac-authserver`, and `ac-worldserver`. A source build compiles the modules from this checkout; the runtime image carries module SQL data, so it does not need the repository mounted at runtime.
+
+### Published Docker images
+
+The `docker-release` workflow builds and publishes `ghcr.io/milzstream/azeroth-solo` on pushes to `develop` and `main`. `main` is the stable tag; `develop` is for previews; `sha-<commit>` tags pin an exact build. Pull requests build the image without publishing it. On the first publish, set the GHCR package visibility to **Public** in GitHub Package settings if you want anonymous Docker pulls.
+
+For a checkout or the Windows support bundle, `scripts/BuildAndStart.ps1` pulls the published `main` image by default. Add `-BuildImages` to build the current source instead. `.env` can set `DOCKER_IMAGE_TAG=develop` or a `sha-*` tag to test another image.
 
 Logs: `./scripts/dc.sh logs -f ac-worldserver`. Stop: `./scripts/dc.sh down`.
 
@@ -152,20 +158,28 @@ Logs: `./scripts/dc.sh logs -f ac-worldserver`. Stop: `./scripts/dc.sh down`.
 On Windows, use PowerShell and Docker Desktop. The `.sh` files are for a Unix shell. This section does not use `cmd.exe`.
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and leave it running. Compose v2 is included.
-2. Clone this repo and open PowerShell in the clone (the folder that contains `docker-compose.yml`).
+2. Download `solo-azeroth-docker-windows-x86_64.zip` from a GitHub Release and extract it, or clone this repo and open PowerShell in its root.
 3. Run:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\BuildAndStart.ps1
 ```
 
-`scripts/windows.ps1` copies `sql/db_auth/*.sql` into `data/sql/custom/db_auth/`, then gets the Windows extractor tools and prints the folder they landed in. It does not clone anything. Docker Compose is the second step, and only after `client-data/` has the extracted directories.
+`scripts/BuildAndStart.ps1` copies the realm-name SQL into `data/sql/custom/db_auth/`, checks for extracted client data, then pulls the published `main` image and starts Compose. The release ZIP includes the Windows extractor tools, Compose files, `.env.example`, the SQL, and both PowerShell scripts, so it does not require a source checkout or GitHub CLI login.
 
-That command does not install Visual Studio. It uses `gh` to download the latest successful Actions artifact named `windows-extractor-tools` (workflow `.github/workflows/windows-extractor-tools.yml`, `windows-latest`) into `env\dist\bin`. `gh auth login` is required. Actions artifacts are not an anonymous download. The artifact is `map_extractor.exe`, `vmap4_extractor.exe`, `vmap4_assembler.exe`, `mmaps_generator.exe`, `mmaps-config.yaml`, and any non-Windows DLLs those exes import. It is not a GitHub Release. AMP still looks at the latest release for `solo-azeroth-linux-x86_64.tar.gz`.
+To build the server images from source instead, run with `-BuildImages` from a full repository checkout. Set `DOCKER_IMAGE_TAG=develop` in `.env` to test the development image. A source checkout without bundled extractor tools can still download the Actions artifact with `gh auth login`.
 
 Copy every file from `env\dist\bin` into the Wrath 3.3.5a client directory (the folder with `Wow.exe` and `Data`). Run the tools there, in the order in [Client data](#client-data-still-required). `apps/extractor/extractor.bat` is only that menu. It does not compile them. The Docker `ac-tools` image in [Get the extractor binaries](#get-the-extractor-binaries) builds Linux binaries named `map_extractor`, not `map_extractor.exe`.
 
 If `dbc`, `maps`, `vmaps`, or `mmaps` are missing, the script stops after the tools step and does not start Docker. Put those directories, plus `Cameras`, in `client-data/` (`DOCKER_VOL_DATA` in `.env.example`). Do not put extracts under `data/`. Copy `.env.example` to `.env`, set `DOCKER_DB_ROOT_PASSWORD` (replace `change-me`; an empty value makes the pinned compose file use `password`), and run the same command again. This repo does not download client data.
+
+When finished playing, stop the stack with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Stop.ps1
+```
+
+This removes the running containers and Compose network but preserves the database and Ollama model volumes. Do not add `-v` unless you intend to delete that data.
 
 The same download without the script:
 
@@ -191,7 +205,7 @@ export CTOOLS_BUILD=maps-only
 Or:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows.ps1 -LocalBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\BuildAndStart.ps1 -LocalBuild
 ```
 
 On Git Bash, `OSTYPE` is `cygwin`. `apps/compiler/includes/functions.sh` runs `cmake --install` only for `msys*` and `linux*|darwin*`, so the exes stay in `var\build\obj\bin\Release\` (`CTYPE` defaults to `Release` in `conf/dist/config.sh`). For MSVC, `src/cmake/compiler/msvc/settings.cmake` sets `CMAKE_RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`, which is why the configuration name is a subdirectory. That local build does not copy OpenSSL DLLs. [Windows core installation](https://www.azerothcore.org/wiki/windows-core-installation) says to copy `libcrypto-3-x64.dll` and `libssl-3-x64.dll` from the OpenSSL `bin` directory next to the executables.
@@ -262,7 +276,7 @@ AMP runs two instances because a Generic template has one executable. Create bot
 
 Both download the same release asset via `solo-azerothupdates.json` (`GithubRelease` on `Milzstream/azeroth-solo`).
 
-1. After the source changes are on `main`, run **release-linux** (`workflow_dispatch`) in GitHub Actions. It publishes `solo-azeroth-linux-x86_64.tar.gz` as a GitHub Release asset.
+1. After the source changes are on `main` and the `docker-release` workflow has published the GHCR image, run **release-linux** (`workflow_dispatch`) in GitHub Actions. It publishes the AMP tarball and the Windows Docker support ZIP as GitHub Release assets.
 2. In AMP: **ADS Instance Deployment, Configuration Repositories**. Add `Milzstream/azeroth-solo:main` next to `CubeCoders/AMPTemplates:main`. **Fetch Latest**.
 3. Create an instance from **Solo Azeroth Auth** and one from **Solo Azeroth World**. On Linux, AMP may run either instance natively or in AMP-managed container mode. The templates set `ContainerPolicy=SupportedOnLinux`, keep `DockerRequired=False`, and do not bind to a custom Docker image. AMP's normal Settings page remains enabled in either mode; config changes are written to the KVP files and take effect on restart.
 4. Update each instance so AMP unpacks the release into `serverfiles/`.
@@ -313,15 +327,17 @@ The realm **name** is column `realmlist.name` in `acore_auth`, not a conf key. T
 
 Item drop rates other than `Rate.Drop.Money` exist (`Rate.Drop.Item.Poor` and the other quality keys) but are not in the panel. `App.MaxUsers` is not a conf key.
 
-## Release asset
+## Release assets
 
-`solo-azeroth-linux-x86_64.tar.gz` (only after the workflow runs), laid out for AMP's `serverfiles/` directory:
+`solo-azeroth-linux-x86_64.tar.gz` is laid out for AMP's `serverfiles/` directory:
 
 - `bin/authserver`, `bin/worldserver`, `bin/dbimport`
 - `etc/*.conf` and `etc/modules/playerbots.conf`, `etc/modules/individualProgression.conf`, and `etc/modules/mod_ollama_chat.conf`, plus a `configs/` copy
 - `sql/core/data/sql` from the core, including the realm-name file under `custom/db_auth`
 - `etc/modules/mod_ahbot.conf`, plus a `configs/` copy
 - module SQL under `sql/core/modules/` for Playerbots, Individual Progression, Ollama Chat, and AH Bot
+
+`solo-azeroth-docker-windows-x86_64.zip` is a small Docker support bundle for Windows. It contains the Compose manifests, `.env.example`, `BuildAndStart.ps1`, `Stop.ps1`, the realm-name SQL, and the Windows extractor executables/DLLs. It does not contain client files or require a full source checkout.
 
 Built on `ubuntu-22.04` with the same compiler packages as the fork's `core-build-playerbots.yml`, plus `-DCMAKE_INSTALL_PREFIX` and `-DCONF_DIR=etc`. Native AMP hosts need the MySQL client library, OpenSSL, readline, and `mysql` client. AMP-managed Linux containers install the runtime packages from `Meta.ExtraContainerPackages`.
 

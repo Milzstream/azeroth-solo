@@ -1,0 +1,31 @@
+# Use published GHCR images instead of building this repository locally.
+# Set DOCKER_IMAGE_TAG to main, develop, or a sha-* tag.
+services:
+  ac-authserver:
+    image: ${DOCKER_IMAGE:-ghcr.io/milzstream/azeroth-solo}:${DOCKER_IMAGE_TAG:-main}
+    build: !reset null
+    command: ["authserver"]
+    environment:
+      ACORE_COMPONENT: "authserver"
+      AC_UPDATES_ENABLE_DATABASES: "0"
+      AC_DISABLE_INTERACTIVE: "1"
+      AC_CLOSE_IDLE_CONNECTIONS: "0"
+  ac-worldserver:
+    image: ${DOCKER_IMAGE:-ghcr.io/milzstream/azeroth-solo}:${DOCKER_IMAGE_TAG:-main}
+    build: !reset null
+    command: ["worldserver"]
+    environment:
+      ACORE_COMPONENT: "worldserver"
+      AC_UPDATES_ENABLE_DATABASES: "0"
+      AC_DISABLE_INTERACTIVE: "1"
+      AC_CLOSE_IDLE_CONNECTIONS: "0"
+  ac-db-import:
+    image: ${DOCKER_IMAGE:-ghcr.io/milzstream/azeroth-solo}:${DOCKER_IMAGE_TAG:-main}
+    build: !reset null
+    command: ["dbimport"]
+    environment:
+      ACORE_COMPONENT: "dbimport"
+
+  ac-client-data-init:
+    image: ubuntu:24.04
+    build: !reset null

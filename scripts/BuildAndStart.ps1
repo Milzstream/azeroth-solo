@@ -1,11 +1,13 @@
 # Local Docker test on Windows, after the extractor tools are on disk.
-# Default path downloads the windows-extractor-tools Actions artifact.
+# Default path pulls the published GHCR image; -BuildImages builds this checkout.
+# Bundled extractor tools are preferred; otherwise the script can download the Actions artifact.
 # -LocalBuild runs ./acore.sh compiler build with CAPPS_BUILD=none and
 # CTOOLS_BUILD=maps-only (apps/ci/ci-conf-tools.sh). PCH stays at the default.
 # Does not clone upstream or download client data.
 #Requires -Version 5.1
 param(
-    [switch]$LocalBuild
+    [switch]$LocalBuild,
+    [switch]$BuildImages
 )
 $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
@@ -100,15 +102,21 @@ function Write-LocalBuildCommand {
     Write-Host "The Windows core installation wiki does not give a cmake command line. It sets TOOLS_BUILD to all and builds ALL_BUILD (the whole server), RelWithDebInfo, x64."
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $root "CMakeLists.txt") -PathType Leaf) -or
-    -not (Test-Path -LiteralPath (Join-Path $root "docker-compose.yml") -PathType Leaf)) {
-    Fail "Missing server source (CMakeLists.txt or docker-compose.yml). Clone Milzstream/azeroth-solo; do not expect a separate core checkout."
+foreach ($composeFile in @("docker-compose.yml", "docker-compose.override.yml", "docker-compose.images.yml")) {
+    if (-not (Test-Path -LiteralPath (Join-Path $root $composeFile) -PathType Leaf)) {
+        Fail ("Missing " + $composeFile + ". Extract the complete Docker support bundle or use a repository checkout.")
+    }
 }
 
-foreach ($name in @("mod-playerbots", "mod-individual-progression", "mod-ollama-chat")) {
-    $moduleSrc = Join-Path (Join-Path (Join-Path $root "modules") $name) "src"
-    if (-not (Test-Path -LiteralPath $moduleSrc -PathType Container)) {
-        Fail "Missing modules/$name source."
+if ($LocalBuild -or $BuildImages) {
+    if (-not (Test-Path -LiteralPath (Join-Path $root "CMakeLists.txt") -PathType Leaf)) {
+        Fail "Building from source requires a full repository checkout. Use the published images or extract the source first."
+    }
+    foreach ($name in @("mod-playerbots", "mod-individual-progression", "mod-ollama-chat", "mod-dungeon-clear", "mod-ah-bot")) {
+        $moduleSrc = Join-Path (Join-Path (Join-Path $root "modules") $name) "src"
+        if (-not (Test-Path -LiteralPath $moduleSrc -PathType Container)) {
+            Fail "Missing modules/$name source."
+        }
     }
 }
 
@@ -118,7 +126,16 @@ Copy-Item -Force -Path (Join-Path (Join-Path (Join-Path $root "sql") "db_auth") 
 Write-Host "Copied realm-name SQL into data/sql/custom/db_auth (applied by db-import)."
 
 $toolDir = $null
-if ($LocalBuild) {
+if (-not $LocalBuild) {
+    $toolDir = Find-ExtractorDir @(
+        (Join-Path $root "env\dist\bin"),
+        (Join-Path $root "env\dist")
+    )
+}
+
+if ($toolDir) {
+    Write-Host ("Using bundled Windows extractor tools in " + $toolDir)
+} elseif ($LocalBuild) {
     $bash = $null
     $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
     if ($bashCmd) {
@@ -256,10 +273,18 @@ $composeArgs = @(
     "--env-file", $envFile
 )
 
-Write-Host "docker compose build"
-& docker @composeArgs build
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($BuildImages) {
+    Write-Host "docker compose build"
+    & docker @composeArgs build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $runArgs = $composeArgs
+} else {
+    $runArgs = $composeArgs + @("-f", (Join-Path $root "docker-compose.images.yml"))
+    Write-Host "docker compose pull (published GHCR image)"
+    & docker @runArgs pull
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 
 Write-Host "docker compose up -d"
-& docker @composeArgs up -d
+& docker @runArgs up -d
 exit $LASTEXITCODE

@@ -12,6 +12,7 @@
 name: windows-extractor-tools
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches: [main]
@@ -30,7 +31,6 @@ on:
 
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
