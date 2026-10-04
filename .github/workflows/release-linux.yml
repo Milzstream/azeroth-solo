@@ -41,6 +41,19 @@ jobs:
             libmysqlclient-dev libssl-dev libbz2-dev \
             libreadline-dev libncurses-dev mysql-server libboost-all-dev
 
+      - name: Add swap for the Release compile
+        run: |
+          set -euo pipefail
+          # ubuntu-22.04 runners have no swap. A Release build of playerbots
+          # and the vendored modules OOM-kills cc1plus (exit 143) at full
+          # --parallel. 8G of swap covers the fat translation units and the
+          # final link without changing the binaries.
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
       - name: Configure and build
         run: |
           set -euo pipefail
@@ -49,8 +62,16 @@ jobs:
             -DCMAKE_C_COMPILER=gcc \
             -DCMAKE_CXX_COMPILER=g++ \
             -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/ac-install" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-keep-memory" \
             -DCONF_DIR=etc
-          cmake --build build --config Release --parallel
+          # --parallel with no number uses every core. Two Release g++ jobs
+          # is what fits once swap is available; more reintroduces the kill.
+          jobs="$(nproc)"
+          if [ "$jobs" -gt 2 ]; then
+            jobs=2
+          fi
+          echo "Compiling with ${jobs} jobs (nproc=$(nproc))"
+          cmake --build build --config Release --parallel "$jobs"
           cmake --install build --config Release
 
       - name: Stage AMP server tree

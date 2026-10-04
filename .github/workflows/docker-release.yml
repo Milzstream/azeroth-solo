@@ -43,6 +43,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Add swap for the image compile
+        run: |
+          set -euo pipefail
+          # Same OOM as release-linux: the image compile runs on this runner.
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
       - name: Build server image
         uses: docker/build-push-action@v6
         with:
@@ -52,5 +62,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_JOBS=2
           cache-from: type=gha,scope=server
           cache-to: type=gha,mode=max,scope=server

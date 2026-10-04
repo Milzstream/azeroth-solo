@@ -77,6 +77,9 @@ COPY src /azerothcore/src
 COPY modules /azerothcore/modules
 
 ARG CACHEBUST=1
+# Empty keeps the historical local default of nproc+1. CI passes 2 because
+# a GitHub-hosted runner OOM-kills the compiler at full parallelism.
+ARG BUILD_JOBS=
 
 WORKDIR /azerothcore/build
 
@@ -102,7 +105,9 @@ RUN --mount=type=cache,target=/ccache,sharing=locked \
        -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"          \
        -DCMAKE_C_COMPILER_LAUNCHER="ccache"            \
        -DBoost_USE_STATIC_LIBS="ON"                    \
-    && cmake --build . --config "$CTYPE" -j $(($(nproc) + 1)) \
+    && if [ -n "$BUILD_JOBS" ]; then jobs="$BUILD_JOBS"; else jobs=$(($(nproc) + 1)); fi \
+    && echo "cmake build jobs: $jobs" \
+    && cmake --build . --config "$CTYPE" -j "$jobs" \
     && cmake --install . --config "$CTYPE"
 
 #############################
