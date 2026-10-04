@@ -108,7 +108,8 @@ void OllamaDispatch_SubmitSentiment(uint64_t botGuid, uint64_t playerGuid,
 // the world thread; the worker only runs the LLM call and parses one word, and
 // the plan is applied back on the world thread in OllamaDispatch_Update().
 void OllamaDispatch_SubmitIntent(uint64_t botGuid, uint64_t speakerGuid,
-                                 const std::string& botName, std::string prompt);
+                                 const std::string& botName, const std::string& message,
+                                 std::string prompt);
 
 // Distil a bot's accumulated history into lasting memories, then clear it.
 // Fire-and-forget; runs entirely on a worker.

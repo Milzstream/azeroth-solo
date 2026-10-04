@@ -44,7 +44,7 @@ void OllamaIntent_MaybeSubmit(Player* bot, Player* speaker, std::string const& m
         return;
     g_lastIntentRequest[botGuid] = now;
 
-    OllamaDispatch_SubmitIntent(botGuid, speaker->GetGUID().GetRawValue(), bot->GetName(),
+    OllamaDispatch_SubmitIntent(botGuid, speaker->GetGUID().GetRawValue(), bot->GetName(), message,
                                 Intent_BuildPrompt(message));
 }
 

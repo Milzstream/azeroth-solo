@@ -61,7 +61,7 @@ TEST(OllamaIntentPrompt, CannotBreakOutOfTheQuotedMessage)
 TEST(OllamaIntentPrompt, CapsLongMessages)
 {
     std::string const prompt = Intent_BuildPrompt(std::string(5000, 'a'));
-    EXPECT_LT(prompt.size(), 1000u);
+    EXPECT_LT(prompt.size(), 1200u);
 }
 
 TEST(OllamaIntentPlan, EveryIntentHasAPlanExceptNone)

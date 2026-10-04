@@ -171,8 +171,8 @@ namespace
 
         BotIntent const intent = Intent_ParseReply(api.text);
         if (g_DebugEnabled)
-            LOG_INFO("module.ollamachat", "[Ollama Chat] Intent for {}: '{}' -> {}",
-                     task.request.botName, api.text, Intent_Name(intent));
+            LOG_INFO("module.ollamachat", "[Ollama Chat] Intent for {} on '{}': '{}' -> {}",
+                     task.request.botName, task.request.originMessage, api.text, Intent_Name(intent));
 
         if (intent == BotIntent::None)
             return;
@@ -592,7 +592,8 @@ void OllamaDispatch_SubmitSentiment(uint64_t botGuid, uint64_t playerGuid,
 }
 
 void OllamaDispatch_SubmitIntent(uint64_t botGuid, uint64_t speakerGuid,
-                                 const std::string& botName, std::string prompt)
+                                 const std::string& botName, const std::string& message,
+                                 std::string prompt)
 {
     if (botGuid == 0 || speakerGuid == 0 || prompt.empty())
         return;
@@ -602,6 +603,7 @@ void OllamaDispatch_SubmitIntent(uint64_t botGuid, uint64_t speakerGuid,
     task.request.botGuid     = botGuid;
     task.request.targetGuid  = speakerGuid;
     task.request.botName     = botName;
+    task.request.originMessage = message;
     task.request.prompt      = std::move(prompt);
     task.request.kind        = OllamaRequestKind::Intent;
 

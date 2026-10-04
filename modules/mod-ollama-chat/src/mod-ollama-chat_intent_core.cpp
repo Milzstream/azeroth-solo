@@ -75,6 +75,8 @@ std::string Intent_BuildPrompt(std::string const& message)
            "grind - fight monsters nearby for experience\n"
            "quest - work on your current quests together with the leader\n"
            "none - the message is not a request for any of these\n"
+           "Most messages are small talk, questions or jokes and are NOT requests. "
+           "Answer none unless the leader clearly asks you to do one of the actions above.\n"
            "Answer with exactly one word from the list and nothing else.";
 }
 
