@@ -34,6 +34,7 @@
 #include "mod-ollama-chat_sentiment.h"
 #include "mod-ollama-chat_rag.h"
 #include "mod-ollama-chat_dispatch.h"
+#include "mod-ollama-chat_intent.h"
 #include "mod-ollama-chat_governor.h"
 #include "mod-ollama-chat_response.h"
 #include "mod-ollama-chat_capability.h"
@@ -1546,6 +1547,15 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
     {
         LOG_INFO("module.ollamachat", "[Ollama Chat] Sender: {} ({}), Channel: {}, Depth: {}, Reply Chance: {}%, Candidate Bots: {}",
                 player->GetName(), senderIsBot ? "BOT" : "PLAYER", ChatChannelSourceLocalStr[sourceLocal], chainDepth, chance, candidateBots.size());
+    }
+
+    // A master asking its bot to do something is independent of whether the
+    // bot also chats back, so this runs before the reply-chance bail-out.
+    if (!senderIsBot &&
+        (sourceLocal == SRC_PARTY_LOCAL || sourceLocal == SRC_RAID_LOCAL || sourceLocal == SRC_WHISPER_LOCAL))
+    {
+        for (Player* bot : candidateBots)
+            OllamaIntent_MaybeSubmit(bot, player, trimmedMsg);
     }
 
     // Not just an optimisation: this return also used to swallow the name-

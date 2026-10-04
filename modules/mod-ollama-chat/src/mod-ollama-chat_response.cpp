@@ -370,6 +370,25 @@ std::string ClampReplyLength(const std::string& text, uint32_t maxLen)
 
 // --------------------------------------------------------------------------
 
+bool LooksLikeAssistantSpeak(const std::string& text)
+{
+    static const char* const kPhrases[] = {
+        "as an ai", "language model", "happy to help", "how can i assist",
+        "feel free to ask", "let me know if you", "keep that in mind for my",
+        "for my responses", "conversation has just begun", "anything to respond to",
+    };
+
+    std::string lower = text;
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    for (const char* phrase : kPhrases)
+        if (lower.find(phrase) != std::string::npos)
+            return true;
+
+    return false;
+}
+
 std::string ProcessLlmResponse(const std::string& raw,
                                const std::string& botName,
                                uint32_t* outEmoteId)
@@ -412,6 +431,9 @@ std::string ProcessLlmResponse(const std::string& raw,
     s = UnwrapQuotedReply(s);
     s = CollapseWhitespace(s);
     s = ClampReplyLength(s, g_MaxReplyLength);
+
+    if (LooksLikeAssistantSpeak(s))
+        return "";
 
     return Trim(s);
 }

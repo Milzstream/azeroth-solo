@@ -13,9 +13,15 @@ services:
       # underscore before an uppercase letter. These keys exist in the pinned or vendored conf.dist files.
       AC_AI_PLAYERBOT_ENABLED: "1"
       AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
-      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "50"
-      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "150"
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "300"
+      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "300"
       AC_AI_PLAYERBOT_RANDOM_BOT_MAPS: "0,1,530,571"
+      # Gather bots in level-appropriate zones that hold a real player, and rotate which bots are online.
+      AC_AI_PLAYERBOT_RANDOM_BOT_CONCENTRATE_IN_PLAYER_ZONE: "1"
+      AC_AI_PLAYERBOT_ENABLE_PERIODIC_ONLINE_OFFLINE: "1"
+      # Bot levels follow the highest player level; applies to bots created or re-randomised after this.
+      AC_AI_PLAYERBOT_SYNC_LEVEL_WITH_PLAYERS: "1"
+      AC_AI_PLAYERBOT_ENABLE_GREET: "0"
       AC_AI_PLAYERBOT_AUTO_DO_QUESTS: "1"
       # worldserver.conf.dist default is 1. The playerbots install guide recommends 4-6.
       AC_MAP_UPDATE_THREADS: "4"
@@ -29,6 +35,22 @@ services:
       # Ollama runs as a sibling container; localhost would point back to worldserver.
       AC_OLLAMA_CHAT_ENABLE: "1"
       AC_OLLAMA_CHAT_URL: "http://ollama:11434/api/generate"
+      AC_OLLAMA_CHAT_ENABLE_WHISPER_REPLIES: "1"
+      AC_OLLAMA_CHAT_DEBUG_ENABLED: "1"
+      AC_OLLAMA_CHAT_INTENT_ENABLE: "1"
+      AC_OLLAMA_CHAT_INTENT_PREFILTER: "0"
+      AC_OLLAMA_CHAT_MODEL: "llama3.2:3b"
+      AC_OLLAMA_CHAT_SAY_DISTANCE: "60.0"
+      AC_OLLAMA_CHAT_MAX_BOTS_TO_PICK: "3"
+      AC_OLLAMA_CHAT_RANDOM_CHATTER_BOT_COMMENT_CHANCE: "20"
+      AC_OLLAMA_CHAT_MIN_RANDOM_INTERVAL: "20"
+      AC_OLLAMA_CHAT_MAX_RANDOM_INTERVAL: "90"
+      AC_OLLAMA_CHAT_RANDOM_CHATTER_MAX_BOTS_PER_PLAYER: "3"
+      # More bot-to-bot talk, with the chain still decaying so it cannot run away.
+      AC_OLLAMA_CHAT_BOT_REPLY_CHANCE_SAY: "35"
+      AC_OLLAMA_CHAT_BOT_REPLY_CHANCE_CHANNEL: "25"
+      AC_OLLAMA_CHAT_BOT_CONVERSATION_MAX_CHAIN_DEPTH: "4"
+      AC_OLLAMA_CHAT_BOT_CONVERSATION_CHANCE_DECAY_PCT: "65"
       AC_AUCTION_HOUSE_BOT_ENABLE_SELLER: "${DOCKER_AHBOT_ENABLE_SELLER:-0}"
       AC_AUCTION_HOUSE_BOT_ENABLE_BUYER: "${DOCKER_AHBOT_ENABLE_BUYER:-0}"
       AC_AUCTION_HOUSE_BOT_ACCOUNT: "${DOCKER_AHBOT_ACCOUNT:-0}"
@@ -81,7 +103,7 @@ services:
   ac-ollama-model-init:
     image: ollama/ollama:latest
     entrypoint: ["ollama"]
-    command: ["pull", "llama3.2:1b"]
+    command: ["pull", "llama3.2:3b"]
     environment:
       OLLAMA_HOST: "ollama:11434"
     volumes:

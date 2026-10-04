@@ -26,6 +26,7 @@
 #include "LastSpellCastValue.h"
 #include "LogLevelAction.h"
 #include "LootObjectStack.h"
+#include "LootStrategyValue.h"
 #include "MapMgr.h"
 #include "MotionMaster.h"
 #include "MoveSplineInit.h"
@@ -418,6 +419,13 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
 // Helper function for UpdateAI to check group membership and handle removal if necessary
 void PlayerbotAI::UpdateAIGroupMaster()
 {
+    // A grouped companion loots whatever it can, like a player would. Quest items drop per player,
+    // so this cannot take the master's; only the 'normal' strategy skipped items the bot had no use for.
+    auto setLootStrategy = [](PlayerbotAI* ai, char const* name)
+    {
+        ai->GetAiObjectContext()->GetValue<LootStrategy*>("loot strategy")->Set(LootStrategyValue::instance(name));
+    };
+
     if (!bot)
         return;
 
@@ -435,6 +443,7 @@ void PlayerbotAI::UpdateAIGroupMaster()
             SetMaster(nullptr);
             Reset(true);
             ResetStrategies();
+            setLootStrategy(botAI, "normal");
         }
         return;
     }
@@ -460,6 +469,7 @@ void PlayerbotAI::UpdateAIGroupMaster()
             if (!bot->InBattleground())
             {
                 botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
+                setLootStrategy(botAI, "all");
 
                 if (botAI->GetMaster() == botAI->GetGroupLeader())
                     botAI->TellMaster(PlayerbotTextMgr::instance().GetBotTextOrDefault(
@@ -3047,6 +3057,9 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
         ChatMsg type = CHAT_MSG_WHISPER;
         if (currentChat.second - time(nullptr) >= 1)
             type = currentChat.first;
+        // Progress updates from a grouped companion read as party chat, not as private whispers.
+        else if (bot->GetGroup() && bot->GetGroup() == master->GetGroup() && !masterBotAI)
+            type = CHAT_MSG_PARTY;
 
         WorldPacket data;
         ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,

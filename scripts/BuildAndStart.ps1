@@ -1,5 +1,5 @@
 # Local Docker test on Windows, after the extractor tools are on disk.
-# Default path pulls the published GHCR image; -BuildImages builds this checkout.
+# Builds the images from this checkout by default; -UsePublishedImage pulls the GHCR image instead.
 # Bundled extractor tools are preferred; otherwise the script can download the Actions artifact.
 # -LocalBuild runs ./acore.sh compiler build with CAPPS_BUILD=none and
 # CTOOLS_BUILD=maps-only (apps/ci/ci-conf-tools.sh). PCH stays at the default.
@@ -7,8 +7,10 @@
 #Requires -Version 5.1
 param(
     [switch]$LocalBuild,
-    [switch]$BuildImages
+    [switch]$UsePublishedImage,
+    [switch]$BuildImages  # kept so older command lines still work; building is already the default
 )
+$BuildImages = -not $UsePublishedImage
 $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     $PSNativeCommandUseErrorActionPreference = $false
@@ -100,6 +102,52 @@ function Write-LocalBuildCommand {
     Write-Host "  ./acore.sh compiler build"
     Write-Host "That needs Visual Studio, Boost (BOOST_ROOT), a MySQL client library CMake can find, and OpenSSL (OPENSSL_ROOT_DIR). It builds the four extractor targets only (APPS_BUILD=none). On Git Bash, OSTYPE is cygwin, so cmake --install is skipped and the exes stay in var\build\obj\bin\Release\."
     Write-Host "The Windows core installation wiki does not give a cmake command line. It sets TOOLS_BUILD to all and builds ALL_BUILD (the whole server), RelWithDebInfo, x64."
+}
+
+function Find-DockerDesktopExe {
+    $candidates = @()
+    # A per-user install puts docker.exe at <install>\resources\bin, so walk up from the CLI first.
+    $cli = Get-Command docker -ErrorAction SilentlyContinue
+    if ($cli) {
+        $installDir = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $cli.Source))
+        $candidates += (Join-Path $installDir "Docker Desktop.exe")
+    }
+    foreach ($base in @($env:ProgramFiles, [Environment]::GetEnvironmentVariable("ProgramFiles(x86)"))) {
+        if ($base) { $candidates += (Join-Path $base "Docker\Docker\Docker Desktop.exe") }
+    }
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe")
+        $candidates += (Join-Path $env:LOCALAPPDATA "Programs\Docker\Docker\Docker Desktop.exe")
+    }
+    foreach ($exe in $candidates) {
+        if (Test-Path -LiteralPath $exe -PathType Leaf) { return $exe }
+    }
+    return $null
+}
+
+# cmd.exe keeps the daemon-down error text from becoming a terminating error under $ErrorActionPreference = Stop.
+function Test-DockerDaemon {
+    & cmd.exe /c "docker info >nul 2>&1"
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Start-DockerDesktopIfNeeded {
+    if (Test-DockerDaemon) { return }
+    $exe = Find-DockerDesktopExe
+    if (-not $exe) {
+        Fail "Docker is not running and Docker Desktop.exe was not found. Start Docker manually and run this script again."
+    }
+    Write-Host "Docker is not running. Starting Docker Desktop (this can take a minute or two)."
+    Start-Process -FilePath $exe | Out-Null
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-DockerDaemon) {
+            Write-Host "Docker Desktop is ready."
+            return
+        }
+        Start-Sleep -Seconds 3
+    }
+    Fail "Docker Desktop did not become ready within 3 minutes. Check its window for errors and run this script again."
 }
 
 foreach ($composeFile in @("docker-compose.yml", "docker-compose.override.yml", "docker-compose.images.yml")) {
@@ -262,8 +310,9 @@ if ([string]::IsNullOrWhiteSpace($password) -or $password -eq "change-me") {
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Fail "docker was not found on PATH. Install Docker Desktop, start it, and open a new PowerShell window in this repo."
+    Fail "docker was not found on PATH. Install Docker Desktop and open a new PowerShell window in this repo."
 }
+Start-DockerDesktopIfNeeded
 
 $composeArgs = @(
     "compose",
