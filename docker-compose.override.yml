@@ -16,6 +16,9 @@ services:
       AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "300"
       AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "300"
       AC_AI_PLAYERBOT_RANDOM_BOT_MAPS: "0,1,530,571"
+      # Gather bots in level-appropriate zones that hold a real player, and rotate which bots are online.
+      AC_AI_PLAYERBOT_RANDOM_BOT_CONCENTRATE_IN_PLAYER_ZONE: "1"
+      AC_AI_PLAYERBOT_ENABLE_PERIODIC_ONLINE_OFFLINE: "1"
       AC_AI_PLAYERBOT_AUTO_DO_QUESTS: "1"
       # worldserver.conf.dist default is 1. The playerbots install guide recommends 4-6.
       AC_MAP_UPDATE_THREADS: "4"
