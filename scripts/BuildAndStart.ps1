@@ -102,6 +102,40 @@ function Write-LocalBuildCommand {
     Write-Host "The Windows core installation wiki does not give a cmake command line. It sets TOOLS_BUILD to all and builds ALL_BUILD (the whole server), RelWithDebInfo, x64."
 }
 
+function Find-DockerDesktopExe {
+    foreach ($base in @($env:ProgramFiles, [Environment]::GetEnvironmentVariable("ProgramFiles(x86)"), (Join-Path $env:LOCALAPPDATA "Programs"))) {
+        if (-not $base) { continue }
+        $exe = Join-Path $base "Docker\Docker\Docker Desktop.exe"
+        if (Test-Path -LiteralPath $exe -PathType Leaf) { return $exe }
+    }
+    return $null
+}
+
+# cmd.exe keeps the daemon-down error text from becoming a terminating error under $ErrorActionPreference = Stop.
+function Test-DockerDaemon {
+    & cmd.exe /c "docker info >nul 2>&1"
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Start-DockerDesktopIfNeeded {
+    if (Test-DockerDaemon) { return }
+    $exe = Find-DockerDesktopExe
+    if (-not $exe) {
+        Fail "Docker is not running and Docker Desktop.exe was not found. Start Docker manually and run this script again."
+    }
+    Write-Host "Docker is not running. Starting Docker Desktop (this can take a minute or two)."
+    Start-Process -FilePath $exe | Out-Null
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-DockerDaemon) {
+            Write-Host "Docker Desktop is ready."
+            return
+        }
+        Start-Sleep -Seconds 3
+    }
+    Fail "Docker Desktop did not become ready within 3 minutes. Check its window for errors and run this script again."
+}
+
 foreach ($composeFile in @("docker-compose.yml", "docker-compose.override.yml", "docker-compose.images.yml")) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $composeFile) -PathType Leaf)) {
         Fail ("Missing " + $composeFile + ". Extract the complete Docker support bundle or use a repository checkout.")
@@ -262,8 +296,9 @@ if ([string]::IsNullOrWhiteSpace($password) -or $password -eq "change-me") {
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Fail "docker was not found on PATH. Install Docker Desktop, start it, and open a new PowerShell window in this repo."
+    Fail "docker was not found on PATH. Install Docker Desktop and open a new PowerShell window in this repo."
 }
+Start-DockerDesktopIfNeeded
 
 $composeArgs = @(
     "compose",
