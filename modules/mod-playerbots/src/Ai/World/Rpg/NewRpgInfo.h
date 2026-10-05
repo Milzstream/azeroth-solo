@@ -22,6 +22,9 @@ struct NewRpgInfo
     NewRpgInfo() : data(Idle{}) {}
     ~NewRpgInfo() = default;
 
+    static constexpr uint32 doQuestSoftTimeout = 30 * MINUTE * IN_MILLISECONDS;
+    static constexpr uint32 doQuestHardTimeout = 2 * HOUR * IN_MILLISECONDS;
+
     // RPG_GO_GRIND
     struct GoGrind
     {
@@ -75,6 +78,8 @@ struct NewRpgInfo
     };
 
     uint32 startT{0};  // start timestamp of the current status
+    uint32 doQuestStartT{0};
+    bool finishQuestAfterCurrent{false};
 
     // MOVE_FAR
     float nearestMoveFarDis{FLT_MAX};
@@ -104,6 +109,8 @@ struct NewRpgInfo
     void ChangeToWanderNpc();
     void ChangeToWanderRandom();
     void ChangeToDoQuest(uint32 questId, Quest const* quest);
+    bool ShouldEndDoQuest();
+    void OnQuestAccepted();
     void ChangeToTravelFlight(uint32 flightMasterEntry, WorldPosition flightMasterPos, std::vector<uint32> path);
     void ChangeToOutdoorPvp(ObjectGuid::LowType capturePointSpawnId = 0);
     void ChangeToRest();

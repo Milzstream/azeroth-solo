@@ -34,11 +34,39 @@ void NewRpgInfo::ChangeToWanderRandom()
 
 void NewRpgInfo::ChangeToDoQuest(uint32 questId, Quest const* quest)
 {
-    startT = getMSTime();
+    uint32 const now = getMSTime();
+    if (GetStatus() != RPG_DO_QUEST)
+    {
+        doQuestStartT = now;
+        finishQuestAfterCurrent = false;
+    }
+    startT = now;
     DoQuest do_quest;
     do_quest.questId = questId;
     do_quest.quest = quest;
     data = do_quest;
+}
+
+bool NewRpgInfo::ShouldEndDoQuest()
+{
+    if (GetStatus() != RPG_DO_QUEST)
+        return false;
+
+    if (finishQuestAfterCurrent)
+        return true;
+
+    if (HasStatusPersisted(doQuestSoftTimeout) || GetMSTimeDiffToNow(doQuestStartT) > doQuestHardTimeout)
+        finishQuestAfterCurrent = true;
+
+    return finishQuestAfterCurrent;
+}
+
+void NewRpgInfo::OnQuestAccepted()
+{
+    if (GetStatus() != RPG_DO_QUEST || ShouldEndDoQuest())
+        return;
+
+    startT = getMSTime();
 }
 
 void NewRpgInfo::ChangeToTravelFlight(uint32 flightMasterEntry, WorldPosition flightMasterPos, std::vector<uint32> path)
@@ -69,6 +97,8 @@ void NewRpgInfo::ChangeToRest()
 void NewRpgInfo::ChangeToIdle()
 {
     startT = getMSTime();
+    doQuestStartT = 0;
+    finishQuestAfterCurrent = false;
     data = Idle{};
 }
 
@@ -81,6 +111,8 @@ void NewRpgInfo::Reset()
 {
     data = Idle{};
     startT = getMSTime();
+    doQuestStartT = 0;
+    finishQuestAfterCurrent = false;
 }
 
 void NewRpgInfo::SetMoveFarTo(WorldPosition pos)

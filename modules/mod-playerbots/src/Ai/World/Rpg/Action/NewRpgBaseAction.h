@@ -40,8 +40,9 @@ protected:
     bool ForceToWait(uint32 duration, MovementPriority priority = MovementPriority::MOVEMENT_NORMAL);
 
     /* QUEST RELATED CHECK */
-    ObjectGuid ChooseNpcOrGameObjectToInteract(bool questgiverOnly = false, float distanceLimit = 0.0f);
-    bool HasQuestToAcceptOrReward(WorldObject* object);
+    ObjectGuid ChooseNpcOrGameObjectToInteract(bool questgiverOnly = false, float distanceLimit = 0.0f,
+                                               bool allowQuestAcceptance = true);
+    bool HasQuestToAcceptOrReward(WorldObject* object, bool allowQuestAcceptance = true);
     bool InteractWithNpcOrGameObjectForQuest(ObjectGuid guid);
     bool CanInteractWithQuestGiver(Object* questGiver);
     bool IsWithinInteractionDist(Object* object);
