@@ -215,6 +215,9 @@ bool QuestAction::ProcessQuests(WorldObject* questGiver)
 
 bool QuestAction::AcceptQuest(Quest const* quest, ObjectGuid questGiver)
 {
+    if (botAI->rpgInfo.ShouldEndDoQuest())
+        return false;
+
     std::ostringstream out;
 
     uint32 questId = quest->GetQuestId();
@@ -249,6 +252,7 @@ bool QuestAction::AcceptQuest(Quest const* quest, ObjectGuid questGiver)
 
         if (bot->GetQuestStatus(questId) != QUEST_STATUS_NONE && bot->GetQuestStatus(questId) != QUEST_STATUS_REWARDED)
         {
+            botAI->rpgInfo.OnQuestAccepted();
             BroadcastHelper::BroadcastQuestAccepted(botAI, bot, quest);
             out << "Accepted " << chat->FormatQuest(quest);
             botAI->TellMaster(out);

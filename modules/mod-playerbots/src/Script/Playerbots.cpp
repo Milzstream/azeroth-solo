@@ -131,6 +131,7 @@ public:
         PLAYERHOOK_ON_BEFORE_LOGOUT,
         PLAYERHOOK_ON_AFTER_UPDATE,
         PLAYERHOOK_ON_CREATURE_KILL_CREDIT,
+        PLAYERHOOK_ON_QUEST_ACCEPT,
         PLAYERHOOK_ON_BEFORE_PETITION_SIGN,
         PLAYERHOOK_ON_BEFORE_CRITERIA_PROGRESS,
         PLAYERHOOK_ON_BEFORE_ACHI_COMPLETE,
@@ -186,6 +187,12 @@ public:
     void OnPlayerCreatureKillCredit(Player* player, Creature* killed) override
     {
         GuildTaskMgr::instance().CheckKillTask(player, killed);
+    }
+
+    void OnPlayerQuestAccept(Player* player, Quest const* /*quest*/) override
+    {
+        if (PlayerbotAI* botAI = PlayerbotsMgr::instance().GetPlayerbotAI(player))
+            botAI->rpgInfo.OnQuestAccepted();
     }
 
     void OnPlayerBeforePetitionSign(Player* player, ObjectGuid /*petitionGuid*/, bool& alreadySignedByAccount) override

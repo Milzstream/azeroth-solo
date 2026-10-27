@@ -10,6 +10,9 @@
 
 bool QuestConfirmAcceptAction::Execute(Event event)
 {
+    if (botAI->rpgInfo.ShouldEndDoQuest())
+        return false;
+
     WorldPacket packet(event.getPacket());
     uint32 questId;
     packet >> questId;

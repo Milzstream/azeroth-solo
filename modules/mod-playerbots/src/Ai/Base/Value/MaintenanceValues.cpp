@@ -28,7 +28,7 @@ bool CanMoveAroundValue::Calculate()
 
 bool ShouldHomeBindValue::Calculate() { return AI_VALUE2(float, "distance", "home bind") > 1000.0f; }
 
-bool ShouldRepairValue::Calculate() { return AI_VALUE(uint8, "durability") < 80; }
+bool ShouldRepairValue::Calculate() { return AI_VALUE(uint8, "durability") < 70; }
 
 bool CanRepairValue::Calculate()
 {

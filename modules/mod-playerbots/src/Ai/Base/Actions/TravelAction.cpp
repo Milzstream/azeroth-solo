@@ -71,8 +71,9 @@ bool MoveToDarkPortalAction::Execute(Event /*event*/)
 
     if (bot->GetLevel() > 57)
     {
-        if ((bot->GetTeamId() == TEAM_ALLIANCE && bot->GetQuestStatus(10119) == QUEST_STATUS_NONE) ||
-            (bot->GetTeamId() == TEAM_HORDE && bot->GetQuestStatus(9407) == QUEST_STATUS_NONE))
+        if (!botAI->rpgInfo.ShouldEndDoQuest() &&
+            ((bot->GetTeamId() == TEAM_ALLIANCE && bot->GetQuestStatus(10119) == QUEST_STATUS_NONE) ||
+             (bot->GetTeamId() == TEAM_HORDE && bot->GetQuestStatus(9407) == QUEST_STATUS_NONE)))
         {
             if (!bot->IsInCombat())
             {
@@ -85,7 +86,11 @@ bool MoveToDarkPortalAction::Execute(Event /*event*/)
                         auto creatureBounds =
                             bot->GetMap()->GetCreatureBySpawnIdStore().equal_range(creatureData->spawnId);
                         if (creatureBounds.first != creatureBounds.second)
+                        {
                             bot->AddQuest(quest, creatureBounds.first->second);
+                            if (bot->GetQuestStatus(quest->GetQuestId()) != QUEST_STATUS_NONE)
+                                botAI->rpgInfo.OnQuestAccepted();
+                        }
                     }
                 }
                 else
@@ -97,7 +102,11 @@ bool MoveToDarkPortalAction::Execute(Event /*event*/)
                         auto creatureBounds =
                             bot->GetMap()->GetCreatureBySpawnIdStore().equal_range(creatureData->spawnId);
                         if (creatureBounds.first != creatureBounds.second)
+                        {
                             bot->AddQuest(quest, creatureBounds.first->second);
+                            if (bot->GetQuestStatus(quest->GetQuestId()) != QUEST_STATUS_NONE)
+                                botAI->rpgInfo.OnQuestAccepted();
+                        }
                     }
                 }
             }

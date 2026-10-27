@@ -104,6 +104,9 @@ bool AcceptQuestShareAction::Execute(Event event)
     Player* master = GetMaster();
     Player* bot = botAI->GetBot();
 
+    if (botAI->rpgInfo.ShouldEndDoQuest())
+        return false;
+
     WorldPacket& p = event.getPacket();
     p.rpos(0);
     uint32 quest;
@@ -143,6 +146,7 @@ bool AcceptQuestShareAction::Execute(Event event)
     if (bot->CanAddQuest(qInfo, false))
     {
         bot->AddQuest(qInfo, master);
+        botAI->rpgInfo.OnQuestAccepted();
 
         if (bot->CanCompleteQuest(quest))
             bot->CompleteQuest(quest);
@@ -169,6 +173,9 @@ bool ConfirmQuestAction::Execute(Event event)
     Player* bot = botAI->GetBot();
     Player* requester = event.getOwner() ? event.getOwner() : GetMaster();
 
+    if (botAI->rpgInfo.ShouldEndDoQuest())
+        return false;
+
     WorldPacket& p = event.getPacket();
     p.rpos(0);
     uint32 quest;
@@ -189,6 +196,7 @@ bool ConfirmQuestAction::Execute(Event event)
     if (bot->CanAddQuest(qInfo, false))
     {
         bot->AddQuest(qInfo, requester);
+        botAI->rpgInfo.OnQuestAccepted();
 
         if (bot->CanCompleteQuest(quest))
             bot->CompleteQuest(quest);

@@ -288,12 +288,7 @@ bool NewRpgStatusUpdateAction::Execute(Event /*event*/)
         }
         case RPG_DO_QUEST:
         {
-            // DO_QUEST -> IDLE
-            if (info.HasStatusPersisted(statusDoQuestDuration))
-            {
-                info.ChangeToIdle();
-                return true;
-            }
+            info.ShouldEndDoQuest();
             break;
         }
         case RPG_TRAVEL_FLIGHT:
@@ -429,9 +424,6 @@ bool NewRpgWanderNpcAction::Execute(Event /*event*/)
 
 bool NewRpgDoQuestAction::Execute(Event /*event*/)
 {
-    if (SearchQuestGiverAndAcceptOrReward())
-        return true;
-
     NewRpgInfo& info = botAI->rpgInfo;
     auto* dataPtr = std::get_if<NewRpgInfo::DoQuest>(&info.data);
     if (!dataPtr)
@@ -439,6 +431,22 @@ bool NewRpgDoQuestAction::Execute(Event /*event*/)
     auto& data = *dataPtr;
     uint32 questId = data.questId;
     uint8 questStatus = bot->GetQuestStatus(questId);
+
+    bool const finishAfterCurrent = info.ShouldEndDoQuest();
+    if (finishAfterCurrent && questStatus != QUEST_STATUS_INCOMPLETE && questStatus != QUEST_STATUS_COMPLETE)
+    {
+        info.ChangeToIdle();
+        return true;
+    }
+
+    if (SearchQuestGiverAndAcceptOrReward())
+    {
+        questStatus = bot->GetQuestStatus(questId);
+        if (finishAfterCurrent && questStatus != QUEST_STATUS_INCOMPLETE && questStatus != QUEST_STATUS_COMPLETE)
+            info.ChangeToIdle();
+        return true;
+    }
+
     switch (questStatus)
     {
         case QUEST_STATUS_INCOMPLETE:
